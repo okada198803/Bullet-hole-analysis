@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>弾道解析システム</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111318;
+    --surface2: #181c24;
+    --border: #2a3040;
+    --accent: #00e5ff;
+    --accent2: #ff3d3d;
+    --accent3: #ffe066;
+    --text: #c8d0e0;
+    --text-dim: #5a6380;
+    --hit: #ff3d3d;
+    --ellipse: #00e5ff;
+    --grid: rgba(0,229,255,0.06);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 17px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  .logo span { color: var(--accent2); }
+
+  header p {
+    color: var(--text-dim);
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr 280px;
+    gap: 0;
+    height: calc(100vh - 49px);
+  }
+
+  /* ===== LEFT PANEL ===== */
+  .panel-left {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .panel-section {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-label::before {
+    content: '';
+    display: inline-block;
+    width: 3px;
+    height: 10px;
+    background: var(--accent);
+  }
+
+  .upload-area {
+    border: 1.5px dashed var(--border);
+    border-radius: 6px;
+    padding: 24px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    background: var(--surface2);
+  }
+
+  .upload-area:hover, .upload-area.drag-over {
+    border-color: var(--accent);
+    background: rgba(0,229,255,0.04);
+  }
+
+  .upload-area svg { margin-bottom: 8px; opacity: 0.5; }
+  .upload-area p { color: var(--text-dim); font-size: 12px; }
+  .upload-area strong { color: var(--accent); font-size: 12px; }
+
+  #fileInput { display: none; }
+
+  .field-group { margin-bottom: 12px; }
+
+  .field-group label {
+    display: block;
+    color: var(--text-dim);
+    font-size: 11px;
+    margin-bottom: 5px;
+    letter-spacing: 0.5px;
+  }
+
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  input[type="number"], select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    padding: 7px 10px;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type="number"]:focus, select:focus {
+    border-color: var(--accent);
+  }
+
+  .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 9px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    margin-bottom: 8px;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    font-weight: bold;
+  }
+
+  .btn-primary:hover { filter: brightness(1.15); }
+
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+
+  .btn-danger {
+    background: transparent;
+    border: 1px solid var(--accent2);
+    color: var(--accent2);
+  }
+
+  .btn-danger:hover { background: rgba(255,61,61,0.1); }
+
+  /* threshold slider */
+  .slider-row { display: flex; align-items: center; gap: 8px; }
+
+  input[type="range"] {
+    flex: 1;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .slider-val {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--accent);
+    min-width: 28px;
+    text-align: right;
+    font-size: 12px;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .toggle {
+    position: relative;
+    width: 34px;
+    height: 18px;
+  }
+
+  .toggle input { opacity: 0; width: 0; height: 0; }
+
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: var(--border);
+    border-radius: 18px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    left: 3px;
+    top: 3px;
+    background: var(--text-dim);
+    border-radius: 50%;
+    transition: transform 0.2s, background 0.2s;
+  }
+
+  .toggle input:checked + .toggle-slider { background: rgba(0,229,255,0.3); }
+  .toggle input:checked + .toggle-slider::before {
+    transform: translateX(16px);
+    background: var(--accent);
+  }
+
+  /* ===== CANVAS AREA ===== */
+  .canvas-area {
+    background: #070809;
+    position: relative;          /* for toolbar/banner absolute positioning */
+    overflow: hidden;            /* clips toolbar; scroll is on .canvas-scroll */
+    display: flex;
+    flex-direction: column;
+  }
+
+  .canvas-area::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Scrollable viewport inside canvas-area */
+  #canvasScroll {
+    flex: 1;
+    overflow: auto;
+    display: flex;               /* centers canvasWrapper when smaller than viewport */
+    align-items: flex-start;
+    justify-content: flex-start;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* canvasScrollInner: NO centering here — centering via JS padding.
+     Must not use justify-content/align-items center here or left/top get clipped. */
+  #canvasScrollInner {
+    display: block;
+    box-sizing: border-box;
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    opacity: 0.35;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .empty-state svg { opacity: 0.6; }
+
+  .empty-state p {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  #canvasWrapper {
+    position: relative;
+    display: none;
+    cursor: crosshair;
+    /* no transform-based zoom: we resize the canvas directly */
+  }
+
+  #canvasWrapper.show { display: inline-block; }
+
+  #mainCanvas {
+    display: block;
+  }
+
+  #overlayCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    pointer-events: none;
+  }
+
+  .canvas-toolbar {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    background: rgba(10,12,15,0.85);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 8px;
+    gap: 6px;
+    backdrop-filter: blur(8px);
+    z-index: 20;
+    pointer-events: auto;
+  }
+
+  .canvas-toolbar.show {
+    display: flex;
+    align-items: center;
+  }
+
+  .tb-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+
+  .tb-btn:hover, .tb-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .tb-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+    margin: 0 2px;
+  }
+
+  .zoom-display {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 44px;
+    text-align: center;
+  }
+
+  /* ===== RIGHT PANEL ===== */
+  .panel-right {
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  /* stats */
+  .stat-block {
+    background: var(--surface2);
+    border-radius: 5px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+
+  .stat-title {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 22px;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .stat-value span {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-left: 4px;
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .stat-small { font-size: 15px; }
+
+  .hit-list {
+    max-height: 200px;
+    overflow-y: auto;
+    background: var(--surface2);
+    border-radius: 5px;
+  }
+
+  .hit-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    transition: background 0.15s;
+  }
+
+  .hit-item:last-child { border-bottom: none; }
+  .hit-item:hover { background: rgba(0,229,255,0.05); }
+
+  .hit-index {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent2);
+    color: #fff;
+    font-size: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .hit-coords { color: var(--text); flex: 1; margin: 0 10px; }
+
+  .hit-del {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 13px;
+    line-height: 1;
+    transition: color 0.15s;
+  }
+
+  .hit-del:hover { color: var(--accent2); }
+
+  .no-hits {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-dim);
+    font-size: 12px;
+  }
+
+  /* summary bar */
+  .summary-bar {
+    background: var(--surface2);
+    border-radius: 5px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+  }
+
+  .summary-bar .label { color: var(--text-dim); }
+  .summary-bar .val {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--accent3);
+  }
+
+  /* score badge */
+  .score-badge {
+    text-align: center;
+    padding: 16px;
+    border-radius: 8px;
+    background: var(--surface2);
+    margin-bottom: 10px;
+  }
+
+  .score-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 48px;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .score-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* calibration status */
+  .calib-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-dim);
+    padding: 6px 8px;
+    background: var(--surface2);
+    border-radius: 4px;
+    border-left: 3px solid var(--border);
+    margin-top: 6px;
+    line-height: 1.3;
+  }
+  .calib-status.active {
+    color: var(--accent3);
+    border-left-color: var(--accent3);
+  }
+  .calib-mode-banner {
+    position: absolute;
+    top: 56px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255,224,102,0.15);
+    border: 1px solid var(--accent3);
+    color: var(--accent3);
+    font-family: "Share Tech Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 6px 16px;
+    border-radius: 4px;
+    z-index: 20;
+    pointer-events: none;
+    display: none;
+  }
+  .calib-mode-banner.show { display: block; }
+
+  /* scrollbars */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+  /* responsive note */
+  @media (max-width: 900px) {
+    .main-grid { grid-template-columns: 1fr; height: auto; }
+    .panel-left, .panel-right { height: auto; }
+    .canvas-area { min-height: 50vw; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">BALLISTIC<span>.</span>ANALYZER</div>
+  <p>弾痕解析システム v1.8</p>
+</header>
+
+<div class="main-grid">
+
+  <!-- ===== LEFT PANEL ===== -->
+  <div class="panel-left">
+
+    <!-- Upload -->
+    <div class="panel-section">
+      <div class="panel-label">画像読込</div>
+      <div class="upload-area" id="uploadArea">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="1.5">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21,15 16,10 5,21"/>
+        </svg>
+        <p><strong>クリックまたはドロップ</strong></p>
+        <p>JPG / PNG / BMP</p>
+      </div>
+      <input type="file" id="fileInput" accept="image/*">
+    </div>
+
+    <!-- Target Settings -->
+    <div class="panel-section">
+      <div class="panel-label">的の設定（四角形）</div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>幅 (mm)</label>
+          <input type="number" id="targetW" value="300" min="10" max="10000">
+        </div>
+        <div class="field-group">
+          <label>高さ (mm)</label>
+          <input type="number" id="targetH" value="300" min="10" max="10000">
+        </div>
+      </div>
+      <div class="calib-status" id="calibStatus">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        未キャリブレーション（画像全体＝的）
+      </div>
+      <button class="btn btn-secondary" id="btnCalib" style="margin-top:8px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="1"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+        四隅指定してキャリブレーション
+      </button>
+      <button class="btn btn-secondary" id="btnCalibReset" style="display:none">
+        キャリブレーションをリセット
+      </button>
+    </div>
+
+    <!-- Detection Settings -->
+    <div class="panel-section">
+      <div class="panel-label">検出設定</div>
+
+      <div class="toggle-row">
+        <span>青ピクセル自動検出</span>
+        <label class="toggle">
+          <input type="checkbox" id="toggleAutoDetect" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div id="blueDetectSettings">
+        <div class="field-group">
+          <label>青色感度 ▼低=広く検出 ▲高=厳密</label>
+          <div class="slider-row">
+            <input type="range" id="blueThreshold" min="5" max="100" value="20">
+            <span class="slider-val" id="thresholdVal">20</span>
+          </div>
+        </div>
+        <div class="field-group">
+          <label>最小クラスターサイズ (px)　※1=単独ピクセルも検出</label>
+          <div class="slider-row">
+            <input type="range" id="minCluster" min="1" max="100" value="3">
+            <span class="slider-val" id="clusterVal">3</span>
+            <span style="font-size:10px;color:var(--text-dim);display:block;margin-top:3px">1 = 1pxでも検出</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="toggle-row">
+        <span>クリック追加モード</span>
+        <label class="toggle">
+          <input type="checkbox" id="toggleClickAdd" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <button class="btn btn-primary" id="btnAnalyze" style="margin-top:8px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        解析実行
+      </button>
+      <button class="btn btn-secondary" id="btnClearHits">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19,6v14a2,2 0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2v2"/></svg>
+        弾痕クリア
+      </button>
+    </div>
+
+    <!-- Display Toggles -->
+    <div class="panel-section">
+      <div class="panel-label">表示設定</div>
+      <div class="toggle-row" id="rowCalibOnly" style="display:none">
+        <span>枠内のみ解析・追加</span>
+        <label class="toggle">
+          <input type="checkbox" id="calibOnly" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <span>弾痕マーカー</span>
+        <label class="toggle">
+          <input type="checkbox" id="showHits" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <span>包含楕円</span>
+        <label class="toggle">
+          <input type="checkbox" id="showEllipse" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <span>中心点</span>
+        <label class="toggle">
+          <input type="checkbox" id="showCenter" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <span>番号ラベル</span>
+        <label class="toggle">
+          <input type="checkbox" id="showLabels" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Export -->
+    <div class="panel-section">
+      <div class="panel-label">エクスポート</div>
+      <button class="btn btn-secondary" id="btnExportPNG">PNG保存</button>
+      <button class="btn btn-secondary" id="btnExportCSV">CSVデータ出力</button>
+    </div>
+
+  </div>
+
+  <!-- ===== CANVAS AREA ===== -->
+  <div class="canvas-area" id="canvasArea">
+
+    <div class="canvas-toolbar" id="canvasToolbar">
+      <button class="tb-btn active" id="tbModeAdd" title="弾痕追加">追加</button>
+      <button class="tb-btn" id="tbModeRemove" title="弾痕削除">削除</button>
+      <div class="tb-divider"></div>
+      <button class="tb-btn" id="tbZoomIn">＋</button>
+      <span class="zoom-display" id="zoomDisplay">100%</span>
+      <button class="tb-btn" id="tbZoomOut">－</button>
+      <button class="tb-btn" id="tbZoomReset">リセット</button>
+    </div>
+
+    <div class="calib-mode-banner" id="calibBanner">▶ 的の四隅を順番にクリック（左上 → 右上 → 右下 → 左下）　<span id="calibCount">0</span>/4</div>
+
+    <div id="canvasScroll">
+      <div id="canvasScrollInner">
+        <div class="empty-state" id="emptyState">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="1">
+            <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+            <line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/>
+            <line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/>
+          </svg>
+          <p>画像を読み込んでください</p>
+        </div>
+
+        <div id="canvasWrapper">
+          <canvas id="mainCanvas"></canvas>
+          <canvas id="overlayCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== RIGHT PANEL ===== -->
+  <div class="panel-right">
+
+    <!-- Score -->
+    <div class="panel-section">
+      <div class="panel-label">弾痕数</div>
+      <div class="score-badge">
+        <div class="score-num" id="hitCount">0</div>
+        <div class="score-label">DETECTED HITS</div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="panel-section">
+      <div class="panel-label">広がり解析</div>
+
+      <div class="stat-grid">
+        <div class="stat-block">
+          <div class="stat-title">水平方向</div>
+          <div class="stat-value stat-small" id="statH">—<span>mm</span></div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-title">垂直方向</div>
+          <div class="stat-value stat-small" id="statV">—<span>mm</span></div>
+        </div>
+      </div>
+
+      <div class="stat-block">
+        <div class="stat-title">楕円 長軸径（BB対角線）</div>
+        <div class="stat-value" id="statMajor">—<span>mm</span></div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-title">楕円 短軸径（BB短辺）</div>
+        <div class="stat-value" id="statMinor">—<span>mm</span></div>
+      </div>
+
+      <div class="summary-bar">
+        <span class="label">重心（中心点）X</span>
+        <span class="val" id="statCX">—</span>
+      </div>
+      <div class="summary-bar">
+        <span class="label">重心（中心点）Y</span>
+        <span class="val" id="statCY">—</span>
+      </div>
+      <div class="summary-bar">
+        <span class="label">対角線角度</span>
+        <span class="val" id="statAngle">—</span>
+      </div>
+    </div>
+
+    <!-- Hit List -->
+    <div class="panel-section" style="flex:1">
+      <div class="panel-label">弾痕リスト</div>
+      <div class="hit-list" id="hitList">
+        <div class="no-hits">弾痕がありません</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ==============================
+// STATE
+// ==============================
+const state = {
+  img: null,
+  imgW: 0,
+  imgH: 0,
+  hits: [],           // [{x, y}] in image coordinates
+  zoom: 1,
+  panX: 0,
+  panY: 0,
+  mode: 'add',        // 'add' | 'remove' | 'calib'
+  dragging: false,
+  lastPan: null,
+  targetW: 300,       // mm
+  targetH: 300,
+  // calibration
+  calibMode: false,
+  calibPts: [],       // up to 4 image-coord points: TL,TR,BR,BL
+  calibrated: false,
+  // after calibration: offsets and px-per-mm
+  calibImgX: 0, calibImgY: 0,   // image-coord origin (TL corner)
+  calibImgW: 0, calibImgH: 0,   // image-coord size of target rect
+};
+
+// ==============================
+// DOM
+// ==============================
+const fileInput = document.getElementById('fileInput');
+const uploadArea = document.getElementById('uploadArea');
+const canvasWrapper = document.getElementById('canvasWrapper');
+const mainCanvas = document.getElementById('mainCanvas');
+const overlayCanvas = document.getElementById('overlayCanvas');
+const ctx = mainCanvas.getContext('2d');
+const octx = overlayCanvas.getContext('2d');
+const emptyState = document.getElementById('emptyState');
+const canvasToolbar = document.getElementById('canvasToolbar');
+const canvasArea = document.getElementById('canvasArea');
+const canvasScroll = document.getElementById('canvasScroll');
+
+const hitCountEl = document.getElementById('hitCount');
+const hitListEl = document.getElementById('hitList');
+const statH = document.getElementById('statH');
+const statV = document.getElementById('statV');
+const statMajor = document.getElementById('statMajor');
+const statMinor = document.getElementById('statMinor');
+const statCX = document.getElementById('statCX');
+const statCY = document.getElementById('statCY');
+const statAngle = document.getElementById('statAngle');
+const calibBanner = document.getElementById('calibBanner');
+const calibStatus = document.getElementById('calibStatus');
+
+// ==============================
+// UPLOAD
+// ==============================
+uploadArea.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => loadImageFile(e.target.files[0]));
+
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+uploadArea.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadArea.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) loadImageFile(e.dataTransfer.files[0]);
+});
+
+function loadImageFile(file) {
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    state.img = img;
+    state.imgW = img.width;
+    state.imgH = img.height;
+    state.hits = [];
+    state.zoom = 1;
+    state.panX = 0;
+    state.panY = 0;
+    state.calibMode = false;
+    state.calibPts = [];
+    state.calibrated = false;
+    state.calibImgX = 0; state.calibImgY = 0;
+    state.calibImgW = 0; state.calibImgH = 0;
+    calibBanner.classList.remove('show');
+    calibStatus.classList.remove('active');
+    calibStatus.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> 未キャリブレーション（画像全体＝的）';
+    document.getElementById('btnCalibReset').style.display = 'none';
+    emptyState.style.display = 'none';
+    canvasWrapper.classList.add('show');
+    canvasToolbar.classList.add('show');
+
+    // Draw canvas at FULL image resolution for maximum fidelity
+    // Track base fit-scale so zoom=1 fits the viewport
+    const area = canvasScroll.getBoundingClientRect();
+    const maxW = area.width - 40;
+    const maxH = area.height - 60;
+    const fitScale = Math.min(maxW / img.width, maxH / img.height, 1);
+    state.fitScale = fitScale;   // zoom=1 corresponds to this CSS pixel size
+    state.zoom = 1;
+
+    // Canvas pixel dimensions = full image resolution
+    mainCanvas.width  = img.width;
+    mainCanvas.height = img.height;
+    overlayCanvas.width  = img.width;
+    overlayCanvas.height = img.height;
+
+    ctx.drawImage(img, 0, 0, img.width, img.height);
+    applyZoom();   // sets CSS width/height based on zoom
+    renderOverlay();
+    updateStats();
+    updateHitList();
+    URL.revokeObjectURL(url);
+  };
+  img.src = url;
+}
+
+// ==============================
+// BLUE PIXEL DETECTION
+// ==============================
+document.getElementById('btnAnalyze').addEventListener('click', () => {
+  if (!state.img) return;
+  if (!document.getElementById('toggleAutoDetect').checked) return renderOverlay();
+
+  const w = mainCanvas.width;
+  const h = mainCanvas.height;
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const data = imageData.data;
+  const threshold = parseInt(document.getElementById('blueThreshold').value);
+  const minCluster = parseInt(document.getElementById('minCluster').value);
+
+  // Calibration region limits (in canvas pixel coords)
+  const canvScaleX = w / state.imgW;
+  const canvScaleY = h / state.imgH;
+  const useCalibOnly = state.calibrated && document.getElementById('calibOnly') && document.getElementById('calibOnly').checked;
+  const scanX0 = useCalibOnly ? Math.floor(state.calibImgX * canvScaleX) : 0;
+  const scanY0 = useCalibOnly ? Math.floor(state.calibImgY * canvScaleY) : 0;
+  const scanX1 = useCalibOnly ? Math.ceil((state.calibImgX + state.calibImgW) * canvScaleX) : w;
+  const scanY1 = useCalibOnly ? Math.ceil((state.calibImgY + state.calibImgH) * canvScaleY) : h;
+
+  // Blue detection within scan region
+  const blueMap = new Uint8Array(w * h);
+
+  for (let y = scanY0; y < scanY1; y++) {
+    for (let x = scanX0; x < scanX1; x++) {
+      const i = y * w + x;
+      const r = data[i * 4];
+      const g = data[i * 4 + 1];
+      const b = data[i * 4 + 2];
+      const avg = (r + g) / 2;
+      // Blue: b must exceed average of (r,g) by threshold, and b >= r
+      // Relaxed: allows b < g slightly (cyan-ish blues), but b must dominate r
+      if (b >= r && (b - avg) >= threshold) {
+        blueMap[i] = 1;
+      }
+    }
+  }
+
+  // BFS cluster finding (also restricted to scan region)
+  const visited = new Uint8Array(w * h);
+  const clusters = [];
+  for (let y = scanY0; y < scanY1; y++) {
+    for (let x = scanX0; x < scanX1; x++) {
+      const idx = y * w + x;
+      if (blueMap[idx] && !visited[idx]) {
+        const queue = [[x, y]];
+        const cluster = [];
+        visited[idx] = 1;
+        let qi = 0;
+        while (qi < queue.length) {
+          const [cx2, cy2] = queue[qi++];
+          cluster.push([cx2, cy2]);
+          for (const [dx, dy] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+            const nx = cx2 + dx, ny = cy2 + dy;
+            if (nx < scanX0 || ny < scanY0 || nx >= scanX1 || ny >= scanY1) continue;
+            const ni = ny * w + nx;
+            if (blueMap[ni] && !visited[ni]) {
+              visited[ni] = 1;
+              queue.push([nx, ny]);
+            }
+          }
+        }
+        if (cluster.length >= minCluster) clusters.push(cluster);
+      }
+    }
+  }
+
+  // Convert clusters to centroid image coords
+  const scale = state.imgW / w;
+  const newHits = clusters.map(cluster => {
+    const cx2 = cluster.reduce((s, p) => s + p[0], 0) / cluster.length;
+    const cy2 = cluster.reduce((s, p) => s + p[1], 0) / cluster.length;
+    return { x: cx2 * scale, y: cy2 * scale };
+  });
+
+  state.hits = [...state.hits, ...newHits];
+  renderOverlay();
+  updateStats();
+  updateHitList();
+});
+
+// ==============================
+// CLICK TO ADD / REMOVE HITS
+// ==============================
+overlayCanvas.style.pointerEvents = 'auto';
+overlayCanvas.style.cursor = 'crosshair';
+
+overlayCanvas.addEventListener('click', e => {
+  if (!state.img) return;
+
+  const rect = overlayCanvas.getBoundingClientRect();
+  // CSS px → canvas px (canvas is full image resolution)
+  const scaleX = mainCanvas.width  / rect.width;
+  const scaleY = mainCanvas.height / rect.height;
+  const cx = (e.clientX - rect.left) * scaleX;   // canvas px
+  const cy = (e.clientY - rect.top)  * scaleY;   // canvas px
+  // canvas px = image px (canvas drawn at full resolution)
+  const imgX = cx;
+  const imgY = cy;
+
+  // --- CALIBRATION MODE ---
+  if (state.calibMode) {
+    state.calibPts.push({ x: imgX, y: imgY });
+    document.getElementById('calibCount').textContent = state.calibPts.length;
+    renderOverlay();
+    if (state.calibPts.length === 4) {
+      finishCalibration();
+    }
+    return;
+  }
+
+  // --- NORMAL HIT MODE ---
+  if (!document.getElementById('toggleClickAdd').checked) return;
+  if (state.mode === 'add') {
+    if (!isInsideCalibRect(imgX, imgY)) return; // outside calib rect: ignore
+    state.hits.push({ x: imgX, y: imgY });
+  } else {
+    // cx/cy are now in image coords; compare directly
+    // 20px hit radius in CSS pixels → convert to image px via zoom
+    const cssHitRadius = 20;
+    const imgHitRadius = cssHitRadius / (state.fitScale * state.zoom);
+    let minD = imgHitRadius, minI = -1;
+    state.hits.forEach((h, i) => {
+      const d = Math.hypot(cx - h.x, cy - h.y);
+      if (d < minD) { minD = d; minI = i; }
+    });
+    if (minI >= 0) state.hits.splice(minI, 1);
+  }
+  renderOverlay();
+  updateStats();
+  updateHitList();
+});
+
+// ==============================
+// CALIBRATION LOGIC
+// ==============================
+function startCalibration() {
+  if (!state.img) return;
+  state.calibMode = true;
+  state.calibPts = [];
+  document.getElementById('calibCount').textContent = '0';
+  calibBanner.classList.add('show');
+  overlayCanvas.style.cursor = 'crosshair';
+  renderOverlay();
+}
+
+function finishCalibration() {
+  state.calibMode = false;
+  calibBanner.classList.remove('show');
+  overlayCanvas.style.cursor = state.mode === 'add' ? 'crosshair' : 'not-allowed';
+
+  // Compute bounding rect of the 4 clicked points (in image coords)
+  const xs = state.calibPts.map(p => p.x);
+  const ys = state.calibPts.map(p => p.y);
+  state.calibImgX = Math.min(...xs);
+  state.calibImgY = Math.min(...ys);
+  state.calibImgW = Math.max(...xs) - state.calibImgX;
+  state.calibImgH = Math.max(...ys) - state.calibImgY;
+  state.calibrated = true;
+
+  calibStatus.classList.add('active');
+  calibStatus.innerHTML =
+    '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg>' +
+    ' キャリブレーション済（' + state.calibImgW.toFixed(0) + '×' + state.calibImgH.toFixed(0) + ' px → ' +
+    state.targetW + '×' + state.targetH + ' mm）';
+  document.getElementById('btnCalibReset').style.display = '';
+  document.getElementById('rowCalibOnly').style.display = '';
+  renderOverlay();
+  updateStats();
+  updateHitList();
+}
+
+function resetCalibration() {
+  state.calibrated = false;
+  state.calibPts = [];
+  state.calibImgX = 0; state.calibImgY = 0;
+  state.calibImgW = 0; state.calibImgH = 0;
+  calibStatus.classList.remove('active');
+  calibStatus.innerHTML =
+    '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+    ' 未キャリブレーション（画像全体＝的）';
+  document.getElementById('btnCalibReset').style.display = 'none';
+  document.getElementById('rowCalibOnly').style.display = 'none';
+  renderOverlay();
+  updateStats();
+  updateHitList();
+}
+
+document.getElementById('btnCalib').addEventListener('click', startCalibration);
+document.getElementById('btnCalibReset').addEventListener('click', resetCalibration);
+
+// Helper: pixel-to-mm conversion considering calibration
+function pxToMm(imgX, imgY) {
+  if (state.calibrated && state.calibImgW > 0 && state.calibImgH > 0) {
+    const relX = (imgX - state.calibImgX) / state.calibImgW * state.targetW;
+    const relY = (imgY - state.calibImgY) / state.calibImgH * state.targetH;
+    return { x: relX, y: relY };
+  }
+  return {
+    x: imgX / state.imgW * state.targetW,
+    y: imgY / state.imgH * state.targetH,
+  };
+}
+
+// Helper: is this image-coord point inside the calibration rect?
+function isInsideCalibRect(imgX, imgY) {
+  if (!state.calibrated) return true; // no restriction when uncalibrated
+  const calibOnlyEl = document.getElementById('calibOnly');
+  if (!calibOnlyEl || !calibOnlyEl.checked) return true; // toggle off = no restriction
+  return (
+    imgX >= state.calibImgX &&
+    imgX <= state.calibImgX + state.calibImgW &&
+    imgY >= state.calibImgY &&
+    imgY <= state.calibImgY + state.calibImgH
+  );
+}
+
+// ==============================
+// RENDER OVERLAY
+// ==============================
+function renderOverlay() {
+  if (!state.img) return;
+  const w = overlayCanvas.width;   // = imgW (full resolution)
+  const h = overlayCanvas.height;  // = imgH (full resolution)
+  // canvas px === image px, so scale = 1
+  const scaleX = 1;
+  const scaleY = 1;
+
+  octx.clearRect(0, 0, w, h);
+
+  // Marker size: scale with image so markers look reasonable at any resolution
+  // At fitScale * zoom = 1 CSS px per image px, markerR=7 looks good.
+  // As image is larger (more px), we need bigger px markers.
+  const displayPxPerImgPx = (state.fitScale || 1) * (state.zoom || 1);
+  const markerR = Math.max(3, Math.round(7 / displayPxPerImgPx));
+  const lineW   = Math.max(1, 1.5 / displayPxPerImgPx);
+  const fontSize = Math.max(8, Math.round(9 / displayPxPerImgPx));
+
+  // --- Draw calibration overlay ---
+  if (state.calibPts.length > 0 || state.calibrated) {
+    const pts2draw = state.calibrated ? state.calibPts : state.calibPts;
+    const canvPts = pts2draw.map(p => ({
+      x: p.x,   // canvas px = image px
+      y: p.y,
+    }));
+
+    // Draw calibration rectangle (if 4 points done)
+    if (state.calibrated || state.calibPts.length === 4) {
+      const cxs = canvPts.map(p => p.x), cys = canvPts.map(p => p.y);
+      const rx = Math.min(...cxs), ry = Math.min(...cys);
+      const rw = Math.max(...cxs) - rx, rh = Math.max(...cys) - ry;
+      octx.save();
+      octx.strokeStyle = 'rgba(255,224,102,0.9)';
+      octx.lineWidth = lineW * 1.5;
+      octx.setLineDash([Math.max(2, 8/displayPxPerImgPx), Math.max(1, 4/displayPxPerImgPx)]);
+      octx.strokeRect(rx, ry, rw, rh);
+      octx.setLineDash([]);
+      // Label corners
+      const labels = ['TL','TR','BR','BL'];
+      octx.font = '10px Share Tech Mono, monospace';
+      octx.fillStyle = 'rgba(255,224,102,0.9)';
+      canvPts.forEach((p, i) => {
+        octx.beginPath();
+        octx.arc(p.x, p.y, 4, 0, 2*Math.PI);
+        octx.fill();
+        octx.fillText(labels[i], p.x + 6, p.y - 4);
+      });
+      octx.restore();
+    } else {
+      // Draw points collected so far
+      const labels = ['左上','右上','右下','左下'];
+      octx.save();
+      octx.fillStyle = 'rgba(255,224,102,0.9)';
+      octx.font = '10px Share Tech Mono, monospace';
+      canvPts.forEach((p, i) => {
+        octx.beginPath();
+        octx.arc(p.x, p.y, 5, 0, 2*Math.PI);
+        octx.fill();
+        octx.fillText(labels[i], p.x + 7, p.y - 4);
+        if (i > 0) {
+          const prev = canvPts[i-1];
+          octx.beginPath();
+          octx.setLineDash([4,3]);
+          octx.strokeStyle = 'rgba(255,224,102,0.5)';
+          octx.lineWidth = 1;
+          octx.moveTo(prev.x, prev.y);
+          octx.lineTo(p.x, p.y);
+          octx.stroke();
+          octx.setLineDash([]);
+        }
+      });
+      octx.restore();
+    }
+  }
+
+  const hits = state.hits;
+  if (hits.length === 0) return;
+
+  const showHits = document.getElementById('showHits').checked;
+  const showEllipse = document.getElementById('showEllipse').checked;
+  const showCenter = document.getElementById('showCenter').checked;
+  const showLabels = document.getElementById('showLabels').checked;
+
+  // Convert hits to canvas coords
+  const pts = hits.map(h => ({ x: h.x * scaleX, y: h.y * scaleY }));
+
+  // Draw ellipse
+  if (showEllipse && pts.length >= 2) {
+    const ellipse = computeEllipse(pts);
+    if (ellipse) {
+      octx.save();
+      octx.translate(ellipse.cx, ellipse.cy);
+      octx.rotate(ellipse.angle);
+      octx.beginPath();
+      octx.ellipse(0, 0, ellipse.a, ellipse.b, 0, 0, 2 * Math.PI);
+      octx.strokeStyle = 'rgba(0,229,255,0.8)';
+      octx.lineWidth = lineW * 1.5;
+      octx.setLineDash([Math.max(2, 6/displayPxPerImgPx), Math.max(1, 4/displayPxPerImgPx)]);
+      octx.stroke();
+      octx.setLineDash([]);
+      // fill
+      octx.fillStyle = 'rgba(0,229,255,0.05)';
+      octx.fill();
+      octx.restore();
+
+      // Draw axes lines
+      octx.save();
+      octx.translate(ellipse.cx, ellipse.cy);
+      octx.rotate(ellipse.angle);
+      octx.beginPath();
+      octx.moveTo(-ellipse.a, 0); octx.lineTo(ellipse.a, 0);
+      octx.strokeStyle = 'rgba(0,229,255,0.3)';
+      octx.lineWidth = 1;
+      octx.setLineDash([3, 3]);
+      octx.stroke();
+      octx.beginPath();
+      octx.moveTo(0, -ellipse.b); octx.lineTo(0, ellipse.b);
+      octx.stroke();
+      octx.setLineDash([]);
+      octx.restore();
+    }
+  }
+
+  // Draw bounding box + H/V span lines
+  if (pts.length >= 2) {
+    const xs = pts.map(p => p.x);
+    const ys = pts.map(p => p.y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const midX = (minX + maxX) / 2;
+    const midY = (minY + maxY) / 2;
+
+    octx.save();
+    octx.setLineDash([4, 4]);
+
+    // BB矩形
+    octx.strokeStyle = 'rgba(255,224,102,0.25)';
+    octx.lineWidth = lineW;
+    octx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+
+    // 水平スパン線（中央）
+    octx.strokeStyle = 'rgba(255,224,102,0.7)';
+    octx.lineWidth = lineW * 1.2;
+    octx.beginPath();
+    octx.moveTo(minX, midY);
+    octx.lineTo(maxX, midY);
+    octx.stroke();
+
+    // 垂直スパン線（中央）
+    octx.beginPath();
+    octx.moveTo(midX, minY);
+    octx.lineTo(midX, maxY);
+    octx.stroke();
+
+    // 対角線（長軸を示す）
+    octx.strokeStyle = 'rgba(255,100,100,0.5)';
+    octx.lineWidth = 1;
+    octx.beginPath();
+    octx.moveTo(minX, minY); octx.lineTo(maxX, maxY);
+    octx.stroke();
+    octx.beginPath();
+    octx.moveTo(maxX, minY); octx.lineTo(minX, maxY);
+    octx.stroke();
+
+    octx.setLineDash([]);
+    octx.restore();
+  }
+
+  // Draw center
+  if (showCenter && pts.length >= 1) {
+    const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
+    const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+    octx.save();
+    octx.strokeStyle = '#ffe066';
+    octx.lineWidth = lineW;
+    const r = markerR * 1.2;
+    octx.beginPath();
+    octx.moveTo(cx - r, cy); octx.lineTo(cx + r, cy);
+    octx.moveTo(cx, cy - r); octx.lineTo(cx, cy + r);
+    octx.stroke();
+    octx.beginPath();
+    octx.arc(cx, cy, markerR * 0.45, 0, 2 * Math.PI);
+    octx.fillStyle = '#ffe066';
+    octx.fill();
+    octx.restore();
+  }
+
+  // Draw hits
+  if (showHits) {
+    pts.forEach((p, i) => {
+      octx.save();
+      // outer ring
+      octx.beginPath();
+      octx.arc(p.x, p.y, markerR, 0, 2 * Math.PI);
+      octx.strokeStyle = 'rgba(255,61,61,0.6)';
+      octx.lineWidth = lineW;
+      octx.stroke();
+      // inner dot
+      octx.beginPath();
+      octx.arc(p.x, p.y, markerR * 0.5, 0, 2 * Math.PI);
+      octx.fillStyle = '#ff3d3d';
+      octx.fill();
+      // label
+      if (showLabels) {
+        const lx = p.x + markerR * 1.5;
+        const ly = p.y - markerR * 1.5;
+        octx.fillStyle = 'rgba(10,12,15,0.8)';
+        octx.beginPath();
+        octx.arc(lx, ly, markerR * 1.1, 0, 2 * Math.PI);
+        octx.fill();
+        octx.fillStyle = '#ff3d3d';
+        octx.font = 'bold ' + fontSize + 'px Share Tech Mono, monospace';
+        octx.textAlign = 'center';
+        octx.textBaseline = 'middle';
+        octx.fillText(i + 1, lx, ly);
+      }
+      octx.restore();
+    });
+  }
+}
+
+// ==============================
+// BOUNDING BOX CIRCUMSCRIBED ELLIPSE
+// 長軸径=BB対角線、短軸径=BB短辺、中心=BB中心、角度=0
+// ==============================
+function computeEllipse(pts) {
+  // バウンディングボックスに外接する楕円
+  // 長軸 a = BB幅/2（水平）, 短軸 b = BB高さ/2（垂直）
+  // 長軸径(直径) = BB幅 = 水平方向広がり
+  // 短軸径(直径) = BB高さ = 垂直方向広がり
+  // 対角線 = sqrt(幅^2 + 高さ^2) → statMajorに表示
+  if (pts.length < 1) return null;
+  const xs = pts.map(p => p.x);
+  const ys = pts.map(p => p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const W = maxX - minX;
+  const H = maxY - minY;
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+  return { cx, cy, a: Math.max(W / 2, 6), b: Math.max(H / 2, 6), angle: 0, W, H };
+}
+
+// ==============================
+// STATS UPDATE
+// ==============================
+function updateStats() {
+  const hits = state.hits;
+  hitCountEl.textContent = hits.length;
+
+  if (hits.length < 1) {
+    [statH, statV, statMajor, statMinor, statCX, statCY, statAngle].forEach(el => el.innerHTML = '—');
+    return;
+  }
+
+  // mm座標に変換（キャリブ済みなら補正あり）
+  const mmPts = hits.map(h => pxToMm(h.x, h.y));
+  const mxs = mmPts.map(p => p.x);
+  const mys = mmPts.map(p => p.y);
+  const minXmm = Math.min(...mxs), maxXmm = Math.max(...mxs);
+  const minYmm = Math.min(...mys), maxYmm = Math.max(...mys);
+
+  const hMm = maxXmm - minXmm;
+  const vMm = maxYmm - minYmm;
+  const hSpan = hMm.toFixed(1);
+  const vSpan = vMm.toFixed(1);
+
+  statH.innerHTML = `${hSpan}<span>mm</span>`;
+  statV.innerHTML = `${vSpan}<span>mm</span>`;
+
+  // 楕円 = BBに外接 → 長軸径=BB対角線、短軸径=BB短辺
+  const diagMm = Math.sqrt(hMm * hMm + vMm * vMm).toFixed(1);
+  const shortMm = Math.min(hMm, vMm).toFixed(1);
+
+  statMajor.innerHTML = `${diagMm}<span>mm</span>`;
+  statMinor.innerHTML = `${shortMm}<span>mm</span>`;
+  statAngle.textContent = `${(Math.atan2(vMm, hMm) * 180 / Math.PI).toFixed(1)}°`;
+
+  const cxMm = (mmPts.reduce((s, p) => s + p.x, 0) / mmPts.length).toFixed(1);
+  const cyMm = (mmPts.reduce((s, p) => s + p.y, 0) / mmPts.length).toFixed(1);
+  statCX.textContent = `${cxMm} mm`;
+  statCY.textContent = `${cyMm} mm`;
+}
+
+// ==============================
+// HIT LIST
+// ==============================
+function updateHitList() {
+  const hits = state.hits;
+  if (hits.length === 0) {
+    hitListEl.innerHTML = '<div class="no-hits">弾痕がありません</div>';
+    return;
+  }
+  hitListEl.innerHTML = hits.map((h, i) => {
+    const mm = pxToMm(h.x, h.y);
+    return `
+    <div class="hit-item">
+      <div class="hit-index">${i + 1}</div>
+      <div class="hit-coords">${mm.x.toFixed(1)}, ${mm.y.toFixed(1)} mm</div>
+      <button class="hit-del" onclick="removeHit(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function removeHit(i) {
+  state.hits.splice(i, 1);
+  renderOverlay();
+  updateStats();
+  updateHitList();
+}
+
+// ==============================
+// SLIDERS
+// ==============================
+document.getElementById('blueThreshold').addEventListener('input', e => {
+  document.getElementById('thresholdVal').textContent = e.target.value;
+});
+document.getElementById('minCluster').addEventListener('input', e => {
+  document.getElementById('clusterVal').textContent = e.target.value;
+});
+
+// ==============================
+// TARGET SETTINGS SYNC
+// ==============================
+function syncTargetSettings() {
+  state.targetW = parseInt(document.getElementById('targetW').value) || 300;
+  state.targetH = parseInt(document.getElementById('targetH').value) || 300;
+  updateStats();
+}
+document.getElementById('targetW').addEventListener('input', syncTargetSettings);
+document.getElementById('targetH').addEventListener('input', syncTargetSettings);
+
+// ==============================
+// DISPLAY TOGGLES
+// ==============================
+['showHits', 'showEllipse', 'showCenter', 'showLabels', 'calibOnly'].forEach(id => {
+  document.getElementById(id).addEventListener('change', renderOverlay);
+});
+
+// ==============================
+// MODE BUTTONS
+// ==============================
+document.getElementById('tbModeAdd').addEventListener('click', () => {
+  state.mode = 'add';
+  document.getElementById('tbModeAdd').classList.add('active');
+  document.getElementById('tbModeRemove').classList.remove('active');
+  overlayCanvas.style.cursor = 'crosshair';
+});
+document.getElementById('tbModeRemove').addEventListener('click', () => {
+  state.mode = 'remove';
+  document.getElementById('tbModeRemove').classList.add('active');
+  document.getElementById('tbModeAdd').classList.remove('active');
+  overlayCanvas.style.cursor = 'not-allowed';
+});
+
+// ==============================
+// ZOOM — CSS width/height scaling (canvas stays full-res)
+// applyZoom sets the CSS display size of canvasWrapper.
+// zoom=1 → fits viewport; zoom=2 → 2x that size, scrollable.
+// ==============================
+function setZoom(z, pivotX, pivotY) {
+  if (!state.img) return;
+  const oldZoom = state.zoom;
+  state.zoom = Math.max(0.1, Math.min(10, z));
+
+  if (pivotX !== undefined) {
+    const oldW = state.imgW * state.fitScale * oldZoom;
+    const newW = state.imgW * state.fitScale * state.zoom;
+    const oldH = state.imgH * state.fitScale * oldZoom;
+    const newH = state.imgH * state.fitScale * state.zoom;
+    const rx = (canvasScroll.scrollLeft + pivotX) / oldW;
+    const ry = (canvasScroll.scrollTop  + pivotY) / oldH;
+    applyZoom();
+    canvasScroll.scrollLeft = rx * newW - pivotX;
+    canvasScroll.scrollTop  = ry * newH - pivotY;
+  } else {
+    applyZoom();
+  }
+}
+
+function applyZoom() {
+  if (!state.img) return;
+  const cssW = Math.round(state.imgW * state.fitScale * state.zoom);
+  const cssH = Math.round(state.imgH * state.fitScale * state.zoom);
+  // Set CSS display size — canvas pixel data remains full resolution
+  mainCanvas.style.width     = cssW + 'px';
+  mainCanvas.style.height    = cssH + 'px';
+  overlayCanvas.style.width  = cssW + 'px';
+  overlayCanvas.style.height = cssH + 'px';
+  canvasWrapper.style.width  = cssW + 'px';
+  canvasWrapper.style.height = cssH + 'px';
+  canvasWrapper.style.transform = '';
+  document.getElementById('zoomDisplay').textContent = Math.round(state.zoom * 100) + '%';
+  centerCanvas(cssW, cssH);
+}
+
+function centerCanvas(cssW, cssH) {
+  // When the canvas is SMALLER than the scroll viewport, add padding to center it.
+  // When it's LARGER, use a fixed small padding so left/top are reachable.
+  const inner = document.getElementById('canvasScrollInner');
+  const sw = canvasScroll.clientWidth;
+  const sh = canvasScroll.clientHeight;
+  const padX = cssW  < sw  ? Math.floor((sw  - cssW)  / 2) : 20;
+  const padY = cssH  < sh  ? Math.floor((sh  - cssH)  / 2) : 20;
+  inner.style.padding  = padY + 'px ' + padX + 'px';
+  // inner width/height must accommodate canvas + padding for scroll to work
+  inner.style.width  = (cssW  + padX * 2) + 'px';
+  inner.style.height = (cssH + padY * 2) + 'px';
+}
+
+document.getElementById('tbZoomIn').addEventListener('click', () => setZoom(state.zoom * 1.25));
+document.getElementById('tbZoomOut').addEventListener('click', () => setZoom(state.zoom / 1.25));
+document.getElementById('tbZoomReset').addEventListener('click', () => {
+  state.zoom = 1;
+  applyZoom();
+  canvasScroll.scrollLeft = 0;
+  canvasScroll.scrollTop = 0;
+});
+
+// Plain wheel on canvasScroll = native scroll (no override needed)
+
+// Pan by middle-mouse drag or space+drag
+let isPanning = false, panStartX = 0, panStartY = 0, panScrollX = 0, panScrollY = 0;
+canvasScroll.addEventListener('mousedown', e => {
+  if (e.button === 1 || state.spaceDown) {
+    e.preventDefault();
+    isPanning = true;
+    panStartX = e.clientX;
+    panStartY = e.clientY;
+    panScrollX = canvasScroll.scrollLeft;
+    panScrollY = canvasScroll.scrollTop;
+    canvasScroll.style.cursor = 'grabbing';
+  }
+});
+window.addEventListener('mousemove', e => {
+  if (!isPanning) return;
+  canvasArea.scrollLeft = panScrollX - (e.clientX - panStartX);
+  canvasArea.scrollTop  = panScrollY - (e.clientY - panStartY);
+});
+window.addEventListener('mouseup', e => {
+  if (isPanning) {
+    isPanning = false;
+    canvasScroll.style.cursor = '';
+  }
+});
+window.addEventListener('resize', () => { if (state.img) { const cssW = Math.round(state.imgW * state.fitScale * state.zoom); const cssH = Math.round(state.imgH * state.fitScale * state.zoom); centerCanvas(cssW, cssH); } });
+window.addEventListener('keydown', e => { if (e.code === 'Space') { state.spaceDown = true; canvasArea.style.cursor = 'grab'; e.preventDefault(); } });
+window.addEventListener('keyup',   e => { if (e.code === 'Space') { state.spaceDown = false; canvasArea.style.cursor = ''; } });
+
+// Ctrl+wheel = zoom toward cursor (attached to canvasScroll)
+canvasScroll.addEventListener('wheel', e => {
+  if (!state.img) return;
+  if (!e.ctrlKey && !e.metaKey) return;
+  e.preventDefault();
+  const rect = canvasScroll.getBoundingClientRect();
+  const pivotX = e.clientX - rect.left;
+  const pivotY = e.clientY - rect.top;
+  const factor = e.deltaY < 0 ? 1.1 : 0.9;
+  setZoom(state.zoom * factor, pivotX, pivotY);
+}, { passive: false });
+
+// ==============================
+// CLEAR HITS
+// ==============================
+document.getElementById('btnClearHits').addEventListener('click', () => {
+  state.hits = [];
+  renderOverlay();
+  updateStats();
+  updateHitList();
+});
+
+// ==============================
+// EXPORT PNG
+// ==============================
+document.getElementById('btnExportPNG').addEventListener('click', () => {
+  if (!state.img) return;
+  const merged = document.createElement('canvas');
+  merged.width = mainCanvas.width;
+  merged.height = mainCanvas.height;
+  const mctx = merged.getContext('2d');
+  mctx.drawImage(mainCanvas, 0, 0);
+  mctx.drawImage(overlayCanvas, 0, 0);
+  merged.toBlob(blob => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'ballistic_analysis.png';
+    a.click();
+  });
+});
+
+// ==============================
+// EXPORT CSV
+// ==============================
+document.getElementById('btnExportCSV').addEventListener('click', () => {
+  if (state.hits.length === 0) return;
+  let csv = '弾痕番号,X座標(mm),Y座標(mm)\n';
+  state.hits.forEach((h, i) => {
+    const mm = pxToMm(h.x, h.y);
+    csv += `${i + 1},${mm.x.toFixed(2)},${mm.y.toFixed(2)}\n`;
+  });
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ballistic_data.csv';
+  a.click();
+});
+</script>
+</body>
+</html>
