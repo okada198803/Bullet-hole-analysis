@@ -7,62 +7,942 @@
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0a0c0f;
-    --surface: #111318;
-    --surface2: #181c24;
-    --border: #2a3040;
-    --accent: #00e5ff;
-    --accent2: #ff3d3d;
-    --accent3: #ffe066;
-    --text: #c8d0e0;
-    --text-dim: #5a6380;
-    --hit: #ff3d3d;
-    --ellipse: #00e5ff;
-    --grid: rgba(0,229,255,0.06);
+    --bg:#0a0c0f; --surface:#111318; --surface2:#181c24; --border:#2a3040;
+    --accent:#00e5ff; --accent2:#ff3d3d; --accent3:#ffe066; --accent4:#7cfc6e;
+    --text:#c8d0e0; --text-dim:#5a6380; --grid:rgba(0,229,255,0.06);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:13px;min-height:100vh;overflow:hidden;}
+
+  /* HEADER */
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;gap:0;height:48px;position:sticky;top:0;z-index:100;}
+  .logo{font-family:'Share Tech Mono',monospace;font-size:15px;color:var(--accent);letter-spacing:3px;text-transform:uppercase;margin-right:20px;white-space:nowrap;}
+  .logo span{color:var(--accent2);}
+  .tab-bar{display:flex;height:100%;align-items:flex-end;}
+  .tab-btn{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:0 18px;height:38px;border:none;background:transparent;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;white-space:nowrap;}
+  .tab-btn:hover{color:var(--text);}
+  .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+  /* TAB CONTENT */
+  .tab-content{display:none;height:calc(100vh - 48px);}
+  .tab-content.active{display:flex;}
+
+  /* SHARED PANELS */
+  .panel-left,.panel-right{background:var(--surface);display:flex;flex-direction:column;overflow-y:auto;}
+  .panel-left{border-right:1px solid var(--border);width:290px;flex-shrink:0;}
+  .panel-right{border-left:1px solid var(--border);width:270px;flex-shrink:0;}
+  .panel-section{padding:14px;border-bottom:1px solid var(--border);}
+  .panel-label{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+  .panel-label::before{content:'';display:inline-block;width:3px;height:10px;background:var(--accent);}
+
+  /* FORM */
+  .upload-area{border:1.5px dashed var(--border);border-radius:6px;padding:18px 12px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:var(--surface2);}
+  .upload-area:hover,.upload-area.drag-over{border-color:var(--accent);background:rgba(0,229,255,0.04);}
+  .upload-area svg{margin-bottom:6px;opacity:.5;}
+  .upload-area p{color:var(--text-dim);font-size:12px;}
+  .upload-area strong{color:var(--accent);font-size:12px;}
+  #fileInput{display:none;}
+  .field-group{margin-bottom:10px;}
+  .field-group label{display:block;color:var(--text-dim);font-size:11px;margin-bottom:4px;}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  input[type="number"],input[type="text"],select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:13px;padding:6px 10px;border-radius:4px;outline:none;transition:border-color .2s;}
+  input:focus,select:focus{border-color:var(--accent);}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:8px 16px;border:none;border-radius:4px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;transition:all .2s;margin-bottom:7px;}
+  .btn-primary{background:var(--accent);color:#000;font-weight:bold;}
+  .btn-primary:hover{filter:brightness(1.15);}
+  .btn-secondary{background:transparent;border:1px solid var(--border);color:var(--text-dim);}
+  .btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-success{background:transparent;border:1px solid var(--accent4);color:var(--accent4);}
+  .btn-success:hover{background:rgba(124,252,110,0.08);}
+  .btn-danger{background:transparent;border:1px solid var(--accent2);color:var(--accent2);}
+  .btn-danger:hover{background:rgba(255,61,61,0.08);}
+  .slider-row{display:flex;align-items:center;gap:8px;}
+  input[type="range"]{flex:1;accent-color:var(--accent);cursor:pointer;}
+  .slider-val{font-family:'Share Tech Mono',monospace;color:var(--accent);min-width:26px;text-align:right;font-size:12px;}
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;font-size:12px;color:var(--text-dim);}
+  .toggle{position:relative;width:34px;height:18px;}
+  .toggle input{opacity:0;width:0;height:0;}
+  .toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:18px;cursor:pointer;transition:background .2s;}
+  .toggle-slider::before{content:'';position:absolute;width:12px;height:12px;left:3px;top:3px;background:var(--text-dim);border-radius:50%;transition:transform .2s,background .2s;}
+  .toggle input:checked+.toggle-slider{background:rgba(0,229,255,0.3);}
+  .toggle input:checked+.toggle-slider::before{transform:translateX(16px);background:var(--accent);}
+
+  /* CANVAS AREA */
+  .canvas-area{background:#070809;position:relative;overflow:hidden;display:flex;flex-direction:column;flex:1;}
+  .canvas-area::before{content:'';position:absolute;inset:0;background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;z-index:0;}
+  #canvasScroll{flex:1;overflow:auto;position:relative;z-index:1;}
+  #canvasScrollInner{display:block;box-sizing:border-box;}
+  .empty-state{display:flex;flex-direction:column;align-items:center;gap:12px;opacity:.35;pointer-events:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2;}
+  .empty-state p{font-family:'Share Tech Mono',monospace;font-size:13px;letter-spacing:2px;color:var(--accent);text-transform:uppercase;}
+  #canvasWrapper{position:relative;display:none;}
+  #canvasWrapper.show{display:inline-block;}
+  #mainCanvas{display:block;}
+  #overlayCanvas{position:absolute;top:0;left:0;pointer-events:none;cursor:crosshair;}
+  #overlayCanvas.active{pointer-events:auto;}
+
+  /* TOOLBAR */
+  .canvas-toolbar{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:none;background:rgba(10,12,15,0.9);border:1px solid var(--border);border-radius:6px;padding:5px 8px;gap:6px;backdrop-filter:blur(8px);z-index:20;}
+  .canvas-toolbar.show{display:flex;align-items:center;}
+  .tb-btn{background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1px;padding:5px 10px;cursor:pointer;transition:all .15s;text-transform:uppercase;}
+  .tb-btn:hover,.tb-btn.active{border-color:var(--accent);color:var(--accent);}
+  .tb-divider{width:1px;height:20px;background:var(--border);margin:0 2px;}
+  .zoom-display{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);min-width:44px;text-align:center;}
+  .calib-mode-banner{position:absolute;top:54px;left:50%;transform:translateX(-50%);background:rgba(255,224,102,0.12);border:1px solid var(--accent3);color:var(--accent3);font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1px;padding:5px 14px;border-radius:4px;z-index:20;pointer-events:none;display:none;}
+  .calib-mode-banner.show{display:block;}
+  .calib-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);padding:6px 8px;background:var(--surface2);border-radius:4px;border-left:3px solid var(--border);margin-top:6px;line-height:1.3;}
+  .calib-status.active{color:var(--accent3);border-left-color:var(--accent3);}
+
+  /* STATS */
+  .stat-block{background:var(--surface2);border-radius:5px;padding:10px;margin-bottom:8px;}
+  .stat-title{font-size:10px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+  .stat-value{font-family:'Share Tech Mono',monospace;font-size:20px;color:var(--accent);line-height:1;}
+  .stat-value span{font-size:11px;color:var(--text-dim);margin-left:3px;}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .stat-small{font-size:15px;}
+  .summary-bar{background:var(--surface2);border-radius:4px;padding:8px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;font-size:12px;}
+  .summary-bar .label{color:var(--text-dim);}
+  .summary-bar .val{font-family:'Share Tech Mono',monospace;color:var(--accent3);}
+  .score-badge{text-align:center;padding:14px;border-radius:8px;background:var(--surface2);margin-bottom:10px;}
+  .score-num{font-family:'Share Tech Mono',monospace;font-size:44px;color:var(--accent);line-height:1;}
+  .score-label{font-size:10px;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase;margin-top:4px;}
+  .hit-list{max-height:150px;overflow-y:auto;background:var(--surface2);border-radius:5px;}
+  .hit-item{display:flex;align-items:center;padding:6px 10px;border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);}
+  .hit-item:last-child{border-bottom:none;}
+  .hit-index{width:17px;height:17px;border-radius:50%;background:var(--accent2);color:#fff;font-size:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .hit-coords{color:var(--text);flex:1;margin:0 8px;}
+  .hit-del{background:none;border:none;color:var(--text-dim);cursor:pointer;padding:2px 4px;font-size:12px;line-height:1;}
+  .hit-del:hover{color:var(--accent2);}
+  .no-hits{text-align:center;padding:18px;color:var(--text-dim);font-size:12px;}
+  .save-section{background:rgba(124,252,110,0.04);border:1px solid rgba(124,252,110,0.15);border-radius:6px;padding:12px;margin:0;}
+
+  /* DISPERSION TAB */
+  #tabDispersion{flex-direction:column;overflow:hidden;}
+  .disp-layout{display:grid;grid-template-columns:310px 1fr;height:100%;overflow:hidden;}
+  .disp-left{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;}
+  .disp-right{display:flex;flex-direction:column;overflow:hidden;background:#070809;}
+  .chart-header{padding:12px 18px 8px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+  .chart-title{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--accent);letter-spacing:2px;}
+  .chart-container{flex:1;position:relative;padding:10px;overflow:hidden;}
+  #dispChart{display:block;}
+  .moa-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-top:1px solid var(--border);flex-shrink:0;}
+  .moa-cell{background:var(--surface);padding:10px 14px;text-align:center;}
+  .moa-label{font-size:10px;color:var(--text-dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;}
+  .moa-value{font-family:'Share Tech Mono',monospace;font-size:17px;color:var(--accent);}
+  .moa-unit{font-size:11px;color:var(--text-dim);}
+  .record-group-header{padding:8px 14px;background:var(--surface2);font-size:11px;font-weight:bold;color:var(--accent);letter-spacing:1px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);}
+  .record-group-header:hover{background:rgba(0,229,255,0.07);}
+  .rg-count{font-size:10px;color:var(--text-dim);}
+  .record-item{display:flex;align-items:center;padding:7px 14px 7px 22px;border-bottom:1px solid rgba(42,48,64,0.4);font-size:11px;}
+  .record-item:hover{background:rgba(0,229,255,0.04);}
+  .record-item-dist{font-family:'Share Tech Mono',monospace;color:var(--accent3);min-width:44px;}
+  .record-item-info{flex:1;color:var(--text-dim);}
+  .record-item-val{font-family:'Share Tech Mono',monospace;color:var(--text);font-size:11px;margin-right:6px;}
+  .record-del-btn{background:none;border:none;color:var(--text-dim);cursor:pointer;padding:2px 5px;font-size:12px;}
+  .record-del-btn:hover{color:var(--accent2);}
+  .no-records{text-align:center;padding:36px 16px;color:var(--text-dim);font-size:12px;line-height:2;}
+
+  ::-webkit-scrollbar{width:5px;height:5px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+  ::-webkit-scrollbar-thumb:hover{background:var(--accent);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">BALLISTIC<span>.</span>ANALYZER</div>
+  <nav class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('hit')">弾痕解析</button>
+    <button class="tab-btn" onclick="switchTab('disp')">散布率解析</button>
+  </nav>
+</header>
+
+<!-- ===== TAB: 弾痕解析 ===== -->
+<div class="tab-content active" id="tabHit">
+
+  <!-- LEFT PANEL -->
+  <div class="panel-left">
+
+    <div class="panel-section">
+      <div class="panel-label">火器・弾種</div>
+      <div class="field-group"><label>火器名</label><input type="text" id="firearmName" placeholder="例: Remington 870"></div>
+      <div class="field-group"><label>弾種</label><input type="text" id="ammoType" placeholder="例: 00 Buck / #7.5"></div>
+      <div class="field-group"><label>射距離 (m)</label><input type="number" id="distance" value="25" min="1" max="2000"></div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-label">画像読込</div>
+      <div class="upload-area" id="uploadArea">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
+        <p><strong>クリックまたはドロップ</strong></p><p>JPG / PNG / BMP</p>
+      </div>
+      <input type="file" id="fileInput" accept="image/*">
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-label">的の設定（四角形）</div>
+      <div class="field-row">
+        <div class="field-group"><label>幅 (mm)</label><input type="number" id="targetW" value="300" min="10" max="10000"></div>
+        <div class="field-group"><label>高さ (mm)</label><input type="number" id="targetH" value="300" min="10" max="10000"></div>
+      </div>
+      <div class="calib-status" id="calibStatus">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        未キャリブレーション（画像全体＝的）
+      </div>
+      <button class="btn btn-secondary" id="btnCalib" style="margin-top:8px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="1"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+        四隅指定してキャリブレーション
+      </button>
+      <button class="btn btn-secondary" id="btnCalibReset" style="display:none">キャリブレーションをリセット</button>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-label">検出設定</div>
+      <div class="toggle-row"><span>青ピクセル自動検出</span><label class="toggle"><input type="checkbox" id="toggleAutoDetect" checked><span class="toggle-slider"></span></label></div>
+      <div class="field-group"><label>青色感度 ▼低=広く検出 ▲高=厳密</label>
+        <div class="slider-row"><input type="range" id="blueThreshold" min="5" max="100" value="20"><span class="slider-val" id="thresholdVal">20</span></div>
+      </div>
+      <div class="field-group"><label>最小クラスターサイズ (px) ※1=単独ピクセルも検出</label>
+        <div class="slider-row"><input type="range" id="minCluster" min="1" max="100" value="3"><span class="slider-val" id="clusterVal">3</span></div>
+      </div>
+      <div class="toggle-row"><span>クリック追加モード</span><label class="toggle"><input type="checkbox" id="toggleClickAdd" checked><span class="toggle-slider"></span></label></div>
+      <button class="btn btn-primary" id="btnAnalyze" style="margin-top:6px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        解析実行
+      </button>
+      <button class="btn btn-secondary" id="btnClearHits">弾痕クリア</button>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-label">表示設定</div>
+      <div class="toggle-row" id="rowCalibOnly" style="display:none"><span>枠内のみ解析・追加</span><label class="toggle"><input type="checkbox" id="calibOnly" checked><span class="toggle-slider"></span></label></div>
+      <div class="toggle-row"><span>弾痕マーカー</span><label class="toggle"><input type="checkbox" id="showHits" checked><span class="toggle-slider"></span></label></div>
+      <div class="toggle-row"><span>包含楕円</span><label class="toggle"><input type="checkbox" id="showEllipse" checked><span class="toggle-slider"></span></label></div>
+      <div class="toggle-row"><span>中心点</span><label class="toggle"><input type="checkbox" id="showCenter" checked><span class="toggle-slider"></span></label></div>
+      <div class="toggle-row"><span>番号ラベル</span><label class="toggle"><input type="checkbox" id="showLabels" checked><span class="toggle-slider"></span></label></div>
+    </div>
+
+    <div class="panel-section save-section">
+      <div class="panel-label">記録として保存</div>
+      <button class="btn btn-success" id="btnSaveRecord">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg>
+        この解析結果を記録
+      </button>
+      <div id="saveMsg" style="font-size:11px;color:var(--accent4);text-align:center;display:none;margin-top:4px">✓ 保存しました</div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-label">エクスポート</div>
+      <button class="btn btn-secondary" id="btnExportPNG">PNG保存</button>
+      <button class="btn btn-secondary" id="btnExportCSV">CSVデータ出力</button>
+    </div>
+
+  </div><!-- /panel-left -->
+
+  <!-- CANVAS -->
+  <div class="canvas-area" id="canvasArea">
+    <div class="canvas-toolbar" id="canvasToolbar">
+      <button class="tb-btn active" id="tbModeAdd">追加</button>
+      <button class="tb-btn" id="tbModeRemove">削除</button>
+      <div class="tb-divider"></div>
+      <button class="tb-btn" id="tbZoomIn">＋</button>
+      <span class="zoom-display" id="zoomDisplay">100%</span>
+      <button class="tb-btn" id="tbZoomOut">－</button>
+      <button class="tb-btn" id="tbZoomReset">リセット</button>
+    </div>
+    <div class="calib-mode-banner" id="calibBanner">▶ 的の四隅をクリック（左上→右上→右下→左下）　<span id="calibCount">0</span>/4</div>
+    <div class="empty-state" id="emptyState">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="1"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/></svg>
+      <p>画像を読み込んでください</p>
+    </div>
+    <div id="canvasScroll">
+      <div id="canvasScrollInner">
+        <div id="canvasWrapper">
+          <canvas id="mainCanvas"></canvas>
+          <canvas id="overlayCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel-right">
+    <div class="panel-section">
+      <div class="panel-label">弾痕数</div>
+      <div class="score-badge"><div class="score-num" id="hitCount">0</div><div class="score-label">DETECTED HITS</div></div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-label">広がり解析</div>
+      <div class="stat-grid">
+        <div class="stat-block"><div class="stat-title">水平方向</div><div class="stat-value stat-small" id="statH">—<span>mm</span></div></div>
+        <div class="stat-block"><div class="stat-title">垂直方向</div><div class="stat-value stat-small" id="statV">—<span>mm</span></div></div>
+      </div>
+      <div class="stat-block"><div class="stat-title">長軸径（BB対角線）</div><div class="stat-value" id="statMajor">—<span>mm</span></div></div>
+      <div class="stat-block"><div class="stat-title">短軸径（BB短辺）</div><div class="stat-value" id="statMinor">—<span>mm</span></div></div>
+      <div class="summary-bar"><span class="label">重心 X</span><span class="val" id="statCX">—</span></div>
+      <div class="summary-bar"><span class="label">重心 Y</span><span class="val" id="statCY">—</span></div>
+      <div class="summary-bar"><span class="label">対角線角度</span><span class="val" id="statAngle">—</span></div>
+    </div>
+    <div class="panel-section" style="flex:1">
+      <div class="panel-label">弾痕リスト</div>
+      <div class="hit-list" id="hitList"><div class="no-hits">弾痕がありません</div></div>
+    </div>
+  </div>
+
+</div><!-- /tabHit -->
+
+<!-- ===== TAB: 散布率解析 ===== -->
+<div class="tab-content" id="tabDispersion">
+  <div class="disp-layout">
+
+    <div class="disp-left">
+      <div class="panel-section">
+        <div class="panel-label">記録データ</div>
+        <div class="field-group"><label>火器で絞り込み</label><select id="filterFirearm"><option value="">すべて</option></select></div>
+        <div class="field-group"><label>弾種で絞り込み</label><select id="filterAmmo"><option value="">すべて</option></select></div>
+        <div class="field-group"><label>グラフ指標</label>
+          <select id="chartMetric">
+            <option value="major">長軸径（対角線）</option>
+            <option value="hSpan">水平方向広がり</option>
+            <option value="vSpan">垂直方向広がり</option>
+            <option value="minor">短軸径</option>
+          </select>
+        </div>
+        <button class="btn btn-danger" id="btnClearAllRecords">全記録削除</button>
+      </div>
+      <div id="recordList" style="flex:1;overflow-y:auto;"></div>
+    </div>
+
+    <div class="disp-right">
+      <div class="chart-header">
+        <span class="chart-title" id="chartTitle">散布率解析 — 距離 vs 広がり</span>
+        <span style="font-size:10px;color:var(--text-dim)">Ctrl＋ホイール でズーム</span>
+      </div>
+      <div class="chart-container" id="chartContainer">
+        <canvas id="dispChart"></canvas>
+      </div>
+      <div class="moa-bar">
+        <div class="moa-cell"><div class="moa-label">回帰 傾き</div><div class="moa-value" id="moaSlope">—<span class="moa-unit"> mm/m</span></div></div>
+        <div class="moa-cell"><div class="moa-label">100m予測値</div><div class="moa-value" id="moa100">—<span class="moa-unit"> mm</span></div></div>
+        <div class="moa-cell"><div class="moa-label">相関係数 R²</div><div class="moa-value" id="moaR2">—</div></div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /tabDispersion -->
+
+<script>
+// =========================================
+// STATE
+// =========================================
+const S = {
+  img:null, imgW:0, imgH:0,
+  hits:[], zoom:1, fitScale:1, mode:'add', spaceDown:false,
+  calibMode:false, calibPts:[], calibrated:false,
+  calibImgX:0, calibImgY:0, calibImgW:0, calibImgH:0,
+  targetW:300, targetH:300,
+};
+
+// =========================================
+// DOM
+// =========================================
+const $  = id => document.getElementById(id);
+const uploadArea    = $('uploadArea');
+const fileInput     = $('fileInput');
+const canvasWrapper = $('canvasWrapper');
+const mainCanvas    = $('mainCanvas');
+const overlayCanvas = $('overlayCanvas');
+const ctx  = mainCanvas.getContext('2d');
+const octx = overlayCanvas.getContext('2d');
+const canvasScroll  = $('canvasScroll');
+const calibBanner   = $('calibBanner');
+const calibStatus   = $('calibStatus');
+
+// =========================================
+// TABS
+// =========================================
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  $(name === 'hit' ? 'tabHit' : 'tabDispersion').classList.add('active');
+  document.querySelectorAll('.tab-btn')[name === 'hit' ? 0 : 1].classList.add('active');
+  if (name === 'disp') renderDispTab();
+}
+
+// =========================================
+// IMAGE LOAD
+// =========================================
+uploadArea.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => loadImg(e.target.files[0]));
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+uploadArea.addEventListener('drop', e => { e.preventDefault(); uploadArea.classList.remove('drag-over'); if (e.dataTransfer.files[0]) loadImg(e.dataTransfer.files[0]); });
+
+function loadImg(file) {
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    Object.assign(S, { img, imgW:img.width, imgH:img.height, hits:[], zoom:1,
+      calibMode:false, calibPts:[], calibrated:false,
+      calibImgX:0, calibImgY:0, calibImgW:0, calibImgH:0 });
+    resetCalibUI();
+    $('emptyState').style.display = 'none';
+    canvasWrapper.classList.add('show');
+    $('canvasToolbar').classList.add('show');
+    const area = canvasScroll.getBoundingClientRect();
+    S.fitScale = Math.min((area.width-40)/img.width, (area.height-40)/img.height, 1);
+    mainCanvas.width = overlayCanvas.width = img.width;
+    mainCanvas.height = overlayCanvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+    overlayCanvas.classList.add('active');
+    applyZoom(); renderOverlay(); updateStats(); updateHitList();
+    URL.revokeObjectURL(url);
+  };
+  img.src = url;
+}
+
+// =========================================
+// ZOOM / SCROLL
+// =========================================
+function applyZoom() {
+  if (!S.img) return;
+  const cw = Math.round(S.imgW * S.fitScale * S.zoom);
+  const ch = Math.round(S.imgH * S.fitScale * S.zoom);
+  for (const el of [mainCanvas, overlayCanvas, canvasWrapper]) {
+    el.style.width = cw + 'px'; el.style.height = ch + 'px';
+  }
+  canvasWrapper.style.transform = '';
+  $('zoomDisplay').textContent = Math.round(S.zoom * 100) + '%';
+  centerCanvas(cw, ch);
+}
+
+function centerCanvas(cw, ch) {
+  const inner = $('canvasScrollInner');
+  const sw = canvasScroll.clientWidth, sh = canvasScroll.clientHeight;
+  const px = cw < sw ? Math.floor((sw - cw) / 2) : 20;
+  const py = ch < sh ? Math.floor((sh - ch) / 2) : 20;
+  inner.style.padding = py + 'px ' + px + 'px';
+  inner.style.width  = (cw + px*2) + 'px';
+  inner.style.height = (ch + py*2) + 'px';
+}
+
+function setZoom(z, pivX, pivY) {
+  if (!S.img) return;
+  const old = S.zoom;
+  S.zoom = Math.max(0.1, Math.min(10, z));
+  if (pivX !== undefined) {
+    const ow = S.imgW*S.fitScale*old, oh = S.imgH*S.fitScale*old;
+    const nw = S.imgW*S.fitScale*S.zoom, nh = S.imgH*S.fitScale*S.zoom;
+    const rx = (canvasScroll.scrollLeft + pivX) / ow;
+    const ry = (canvasScroll.scrollTop  + pivY) / oh;
+    applyZoom();
+    canvasScroll.scrollLeft = rx*nw - pivX;
+    canvasScroll.scrollTop  = ry*nh - pivY;
+  } else { applyZoom(); }
+}
+
+$('tbZoomIn').addEventListener('click',  () => setZoom(S.zoom * 1.25));
+$('tbZoomOut').addEventListener('click', () => setZoom(S.zoom / 1.25));
+$('tbZoomReset').addEventListener('click', () => { S.zoom=1; applyZoom(); canvasScroll.scrollLeft=canvasScroll.scrollTop=0; });
+
+canvasScroll.addEventListener('wheel', e => {
+  if (!S.img || (!e.ctrlKey && !e.metaKey)) return;
+  e.preventDefault();
+  const r = canvasScroll.getBoundingClientRect();
+  setZoom(S.zoom * (e.deltaY < 0 ? 1.1 : 0.9), e.clientX - r.left, e.clientY - r.top);
+}, { passive: false });
+
+let isPanning=false, panSX=0, panSY=0, panSL=0, panST=0;
+canvasScroll.addEventListener('mousedown', e => {
+  if (e.button===1 || S.spaceDown) { e.preventDefault(); isPanning=true; panSX=e.clientX; panSY=e.clientY; panSL=canvasScroll.scrollLeft; panST=canvasScroll.scrollTop; canvasScroll.style.cursor='grabbing'; }
+});
+window.addEventListener('mousemove', e => { if (isPanning) { canvasScroll.scrollLeft=panSL-(e.clientX-panSX); canvasScroll.scrollTop=panST-(e.clientY-panSY); } });
+window.addEventListener('mouseup', () => { if (isPanning) { isPanning=false; canvasScroll.style.cursor=''; } });
+window.addEventListener('keydown', e => { if (e.code==='Space' && !e.target.matches('input,textarea')) { S.spaceDown=true; canvasScroll.style.cursor='grab'; e.preventDefault(); } });
+window.addEventListener('keyup',   e => { if (e.code==='Space') { S.spaceDown=false; canvasScroll.style.cursor=''; } });
+window.addEventListener('resize',  () => { if (S.img) { const cw=Math.round(S.imgW*S.fitScale*S.zoom), ch=Math.round(S.imgH*S.fitScale*S.zoom); centerCanvas(cw,ch); } });
+
+// =========================================
+// CLICK — ADD / REMOVE / CALIB
+// =========================================
+overlayCanvas.addEventListener('click', e => {
+  if (!S.img) return;
+  const r = overlayCanvas.getBoundingClientRect();
+  const imgX = (e.clientX - r.left) * (mainCanvas.width  / r.width);
+  const imgY = (e.clientY - r.top)  * (mainCanvas.height / r.height);
+  if (S.calibMode) {
+    S.calibPts.push({ x:imgX, y:imgY });
+    $('calibCount').textContent = S.calibPts.length;
+    renderOverlay();
+    if (S.calibPts.length === 4) finishCalib();
+    return;
+  }
+  if (!$('toggleClickAdd').checked) return;
+  if (S.mode === 'add') {
+    if (!inCalibRect(imgX, imgY)) return;
+    S.hits.push({ x:imgX, y:imgY });
+  } else {
+    const r2 = 20 / (S.fitScale * S.zoom);
+    let minD=r2, minI=-1;
+    S.hits.forEach((h,i) => { const d=Math.hypot(imgX-h.x,imgY-h.y); if(d<minD){minD=d;minI=i;} });
+    if (minI >= 0) S.hits.splice(minI, 1);
+  }
+  renderOverlay(); updateStats(); updateHitList();
+});
+
+// =========================================
+// CALIBRATION
+// =========================================
+function resetCalibUI() {
+  calibBanner.classList.remove('show');
+  calibStatus.classList.remove('active');
+  calibStatus.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> 未キャリブレーション（画像全体＝的）';
+  $('btnCalibReset').style.display = 'none';
+  $('rowCalibOnly').style.display = 'none';
+}
+$('btnCalib').addEventListener('click', () => {
+  if (!S.img) return;
+  S.calibMode=true; S.calibPts=[];
+  $('calibCount').textContent='0';
+  calibBanner.classList.add('show');
+  renderOverlay();
+});
+$('btnCalibReset').addEventListener('click', () => {
+  Object.assign(S, { calibrated:false, calibPts:[], calibImgX:0, calibImgY:0, calibImgW:0, calibImgH:0 });
+  resetCalibUI(); renderOverlay(); updateStats(); updateHitList();
+});
+function finishCalib() {
+  S.calibMode=false; calibBanner.classList.remove('show');
+  const xs=S.calibPts.map(p=>p.x), ys=S.calibPts.map(p=>p.y);
+  S.calibImgX=Math.min(...xs); S.calibImgY=Math.min(...ys);
+  S.calibImgW=Math.max(...xs)-S.calibImgX; S.calibImgH=Math.max(...ys)-S.calibImgY;
+  S.calibrated=true;
+  calibStatus.classList.add('active');
+  calibStatus.innerHTML='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg> キャリブ済 ('+S.calibImgW.toFixed(0)+'×'+S.calibImgH.toFixed(0)+'px → '+S.targetW+'×'+S.targetH+'mm)';
+  $('btnCalibReset').style.display=''; $('rowCalibOnly').style.display='';
+  renderOverlay(); updateStats(); updateHitList();
+}
+function inCalibRect(x, y) {
+  if (!S.calibrated) return true;
+  if (!$('calibOnly').checked) return true;
+  return x>=S.calibImgX && x<=S.calibImgX+S.calibImgW && y>=S.calibImgY && y<=S.calibImgY+S.calibImgH;
+}
+function pxToMm(x, y) {
+  if (S.calibrated && S.calibImgW > 0 && S.calibImgH > 0)
+    return { x:(x-S.calibImgX)/S.calibImgW*S.targetW, y:(y-S.calibImgY)/S.calibImgH*S.targetH };
+  return { x:x/S.imgW*S.targetW, y:y/S.imgH*S.targetH };
+}
+
+// =========================================
+// BLUE DETECTION
+// =========================================
+$('btnAnalyze').addEventListener('click', () => {
+  if (!S.img) return;
+  if (!$('toggleAutoDetect').checked) { renderOverlay(); return; }
+  const w=mainCanvas.width, h=mainCanvas.height;
+  const data=ctx.getImageData(0,0,w,h).data;
+  const thr=parseInt($('blueThreshold').value);
+  const minCl=parseInt($('minCluster').value);
+  const useOnly=S.calibrated && $('calibOnly').checked;
+  const x0=useOnly?Math.floor(S.calibImgX):0, y0=useOnly?Math.floor(S.calibImgY):0;
+  const x1=useOnly?Math.ceil(S.calibImgX+S.calibImgW):w;
+  const y1=useOnly?Math.ceil(S.calibImgY+S.calibImgH):h;
+  const blue=new Uint8Array(w*h);
+  for (let y=y0;y<y1;y++) for (let x=x0;x<x1;x++) {
+    const i=y*w+x, r=data[i*4], g=data[i*4+1], b=data[i*4+2];
+    if (b>=r && (b-(r+g)/2)>=thr) blue[i]=1;
+  }
+  const vis=new Uint8Array(w*h), clusters=[];
+  for (let y=y0;y<y1;y++) for (let x=x0;x<x1;x++) {
+    const idx=y*w+x;
+    if (!blue[idx]||vis[idx]) continue;
+    const q=[[x,y]], cl=[]; vis[idx]=1; let qi=0;
+    while (qi<q.length) {
+      const [cx2,cy2]=q[qi++]; cl.push([cx2,cy2]);
+      for (const [dx,dy] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+        const nx=cx2+dx, ny=cy2+dy;
+        if (nx<x0||ny<y0||nx>=x1||ny>=y1) continue;
+        const ni=ny*w+nx;
+        if (blue[ni]&&!vis[ni]) { vis[ni]=1; q.push([nx,ny]); }
+      }
+    }
+    if (cl.length>=minCl) clusters.push(cl);
+  }
+  S.hits=[...S.hits,...clusters.map(cl=>({ x:cl.reduce((s,p)=>s+p[0],0)/cl.length, y:cl.reduce((s,p)=>s+p[1],0)/cl.length }))];
+  renderOverlay(); updateStats(); updateHitList();
+});
+
+// =========================================
+// OVERLAY RENDER
+// =========================================
+function renderOverlay() {
+  if (!S.img) return;
+  const w=overlayCanvas.width, h=overlayCanvas.height;
+  octx.clearRect(0,0,w,h);
+  const dpp=(S.fitScale||1)*(S.zoom||1);
+  const mR=Math.max(3,7/dpp), lW=Math.max(0.5,1.5/dpp), fs=Math.max(8,9/dpp);
+  const d1=Math.max(2,6/dpp), d2=Math.max(1,4/dpp);
+
+  // Calib rect
+  if (S.calibPts.length>0||S.calibrated) {
+    const cp=S.calibPts.map(p=>({x:p.x,y:p.y}));
+    octx.save(); octx.fillStyle='rgba(255,224,102,0.9)'; octx.font=fs+'px Share Tech Mono,monospace';
+    if (S.calibrated||cp.length===4) {
+      const xs=cp.map(p=>p.x),ys=cp.map(p=>p.y);
+      octx.strokeStyle='rgba(255,224,102,0.85)'; octx.lineWidth=lW*1.5;
+      octx.setLineDash([d1,d2]); octx.strokeRect(Math.min(...xs),Math.min(...ys),Math.max(...xs)-Math.min(...xs),Math.max(...ys)-Math.min(...ys)); octx.setLineDash([]);
+      cp.forEach((p,i)=>{ octx.beginPath(); octx.arc(p.x,p.y,mR*.6,0,2*Math.PI); octx.fill(); octx.fillText(['TL','TR','BR','BL'][i],p.x+6/dpp,p.y-4/dpp); });
+    } else {
+      cp.forEach((p,i)=>{
+        octx.beginPath(); octx.arc(p.x,p.y,mR*.7,0,2*Math.PI); octx.fill();
+        octx.fillText(['左上','右上','右下','左下'][i],p.x+7/dpp,p.y-4/dpp);
+        if (i>0) { octx.strokeStyle='rgba(255,224,102,0.4)'; octx.lineWidth=lW; octx.setLineDash([d2,d2]); octx.beginPath(); octx.moveTo(cp[i-1].x,cp[i-1].y); octx.lineTo(p.x,p.y); octx.stroke(); octx.setLineDash([]); }
+      });
+    }
+    octx.restore();
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  const pts=S.hits.map(h=>({x:h.x,y:h.y}));
+  if (pts.length===0) return;
+  const showH=$('showHits').checked, showE=$('showEllipse').checked;
+  const showC=$('showCenter').checked, showL=$('showLabels').checked;
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Noto Sans JP', sans-serif;
-    font-size: 13px;
-    min-height: 100vh;
-    overflow-x: hidden;
+  // BB + ellipse
+  if (pts.length>=2) {
+    const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
+    const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+    const midX=(minX+maxX)/2, midY=(minY+maxY)/2;
+    octx.save(); octx.setLineDash([d2*1.3,d2]);
+    octx.strokeStyle='rgba(255,224,102,0.18)'; octx.lineWidth=lW; octx.strokeRect(minX,minY,maxX-minX,maxY-minY);
+    octx.strokeStyle='rgba(255,224,102,0.6)'; octx.lineWidth=lW*1.1;
+    octx.beginPath(); octx.moveTo(minX,midY); octx.lineTo(maxX,midY); octx.stroke();
+    octx.beginPath(); octx.moveTo(midX,minY); octx.lineTo(midX,maxY); octx.stroke();
+    octx.strokeStyle='rgba(255,80,80,0.35)'; octx.lineWidth=lW;
+    octx.beginPath(); octx.moveTo(minX,minY); octx.lineTo(maxX,maxY); octx.stroke();
+    octx.beginPath(); octx.moveTo(maxX,minY); octx.lineTo(minX,maxY); octx.stroke();
+    octx.setLineDash([]);
+    if (showE) {
+      octx.translate(midX,midY);
+      octx.beginPath(); octx.ellipse(0,0,Math.max((maxX-minX)/2,4),Math.max((maxY-minY)/2,4),0,0,2*Math.PI);
+      octx.strokeStyle='rgba(0,229,255,0.75)'; octx.lineWidth=lW*1.5;
+      octx.setLineDash([d1,d2]); octx.stroke(); octx.setLineDash([]);
+      octx.fillStyle='rgba(0,229,255,0.04)'; octx.fill();
+    }
+    octx.restore();
   }
 
-  header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 12px 24px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
+  // Center crosshair
+  if (showC&&pts.length>=1) {
+    const cx=pts.reduce((s,p)=>s+p.x,0)/pts.length, cy=pts.reduce((s,p)=>s+p.y,0)/pts.length;
+    const r=mR*1.2;
+    octx.save(); octx.strokeStyle='#ffe066'; octx.lineWidth=lW;
+    octx.beginPath(); octx.moveTo(cx-r,cy); octx.lineTo(cx+r,cy); octx.moveTo(cx,cy-r); octx.lineTo(cx,cy+r); octx.stroke();
+    octx.beginPath(); octx.arc(cx,cy,mR*.45,0,2*Math.PI); octx.fillStyle='#ffe066'; octx.fill();
+    octx.restore();
   }
 
-  .logo {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 17px;
-    color: var(--accent);
-    letter-spacing: 3px;
-    text-transform: uppercase;
+  // Hit markers
+  if (showH) pts.forEach((p,i)=>{
+    octx.save();
+    octx.beginPath(); octx.arc(p.x,p.y,mR,0,2*Math.PI); octx.strokeStyle='rgba(255,61,61,0.6)'; octx.lineWidth=lW; octx.stroke();
+    octx.beginPath(); octx.arc(p.x,p.y,mR*.5,0,2*Math.PI); octx.fillStyle='#ff3d3d'; octx.fill();
+    if (showL) {
+      const lx=p.x+mR*1.5, ly=p.y-mR*1.5;
+      octx.beginPath(); octx.arc(lx,ly,mR*1.1,0,2*Math.PI); octx.fillStyle='rgba(10,12,15,0.8)'; octx.fill();
+      octx.fillStyle='#ff3d3d'; octx.font='bold '+fs+'px Share Tech Mono,monospace'; octx.textAlign='center'; octx.textBaseline='middle';
+      octx.fillText(i+1,lx,ly);
+    }
+    octx.restore();
+  });
+}
+
+// =========================================
+// STATS
+// =========================================
+function updateStats() {
+  const hits=S.hits;
+  $('hitCount').textContent=hits.length;
+  if (hits.length<1) { [$('statH'),$('statV'),$('statMajor'),$('statMinor'),$('statCX'),$('statCY'),$('statAngle')].forEach(el=>el.innerHTML='—'); return; }
+  const mm=hits.map(h=>pxToMm(h.x,h.y));
+  const mxs=mm.map(p=>p.x), mys=mm.map(p=>p.y);
+  const hMm=Math.max(...mxs)-Math.min(...mxs), vMm=Math.max(...mys)-Math.min(...mys);
+  $('statH').innerHTML=hMm.toFixed(1)+'<span>mm</span>';
+  $('statV').innerHTML=vMm.toFixed(1)+'<span>mm</span>';
+  $('statMajor').innerHTML=Math.sqrt(hMm*hMm+vMm*vMm).toFixed(1)+'<span>mm</span>';
+  $('statMinor').innerHTML=Math.min(hMm,vMm).toFixed(1)+'<span>mm</span>';
+  $('statAngle').textContent=(Math.atan2(vMm,hMm)*180/Math.PI).toFixed(1)+'°';
+  $('statCX').textContent=(mm.reduce((s,p)=>s+p.x,0)/mm.length).toFixed(1)+' mm';
+  $('statCY').textContent=(mm.reduce((s,p)=>s+p.y,0)/mm.length).toFixed(1)+' mm';
+}
+
+function updateHitList() {
+  const hits=S.hits;
+  if (!hits.length) { $('hitList').innerHTML='<div class="no-hits">弾痕がありません</div>'; return; }
+  $('hitList').innerHTML=hits.map((h,i)=>{ const mm=pxToMm(h.x,h.y); return `<div class="hit-item"><div class="hit-index">${i+1}</div><div class="hit-coords">${mm.x.toFixed(1)}, ${mm.y.toFixed(1)} mm</div><button class="hit-del" onclick="removeHit(${i})">✕</button></div>`; }).join('');
+}
+
+function removeHit(i) { S.hits.splice(i,1); renderOverlay(); updateStats(); updateHitList(); }
+
+// Target sync
+['targetW','targetH'].forEach(id=>$(id).addEventListener('input',()=>{S.targetW=parseInt($('targetW').value)||300;S.targetH=parseInt($('targetH').value)||300;updateStats();}));
+
+// Sliders
+$('blueThreshold').addEventListener('input',e=>$('thresholdVal').textContent=e.target.value);
+$('minCluster').addEventListener('input',e=>$('clusterVal').textContent=e.target.value);
+
+// Display toggles
+['showHits','showEllipse','showCenter','showLabels','calibOnly'].forEach(id=>{const el=$(id);if(el)el.addEventListener('change',renderOverlay);});
+
+// Mode buttons
+$('tbModeAdd').addEventListener('click',()=>{S.mode='add';$('tbModeAdd').classList.add('active');$('tbModeRemove').classList.remove('active');overlayCanvas.style.cursor='crosshair';});
+$('tbModeRemove').addEventListener('click',()=>{S.mode='remove';$('tbModeRemove').classList.add('active');$('tbModeAdd').classList.remove('active');overlayCanvas.style.cursor='not-allowed';});
+
+// Clear
+$('btnClearHits').addEventListener('click',()=>{S.hits=[];renderOverlay();updateStats();updateHitList();});
+
+// Export PNG
+$('btnExportPNG').addEventListener('click',()=>{
+  if(!S.img)return;
+  const m=document.createElement('canvas'); m.width=mainCanvas.width; m.height=mainCanvas.height;
+  const mc=m.getContext('2d'); mc.drawImage(mainCanvas,0,0); mc.drawImage(overlayCanvas,0,0);
+  m.toBlob(blob=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ballistic_analysis.png';a.click();});
+});
+
+// Export CSV
+$('btnExportCSV').addEventListener('click',()=>{
+  if(!S.hits.length)return;
+  let csv='弾痕番号,X座標(mm),Y座標(mm)\n';
+  S.hits.forEach((h,i)=>{const mm=pxToMm(h.x,h.y);csv+=`${i+1},${mm.x.toFixed(2)},${mm.y.toFixed(2)}\n`;});
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ballistic_data.csv';a.click();
+});
+
+// =========================================
+// RECORDS (localStorage)
+// =========================================
+const LS_KEY='ballisticRecords_v1';
+function getRecs(){try{return JSON.parse(localStorage.getItem(LS_KEY)||'[]');}catch{return[];}}
+function saveRecs(r){localStorage.setItem(LS_KEY,JSON.stringify(r));}
+
+$('btnSaveRecord').addEventListener('click',()=>{
+  if(S.hits.length<1){alert('弾痕がありません。');return;}
+  const firearm=$('firearmName').value.trim()||'不明';
+  const ammo=$('ammoType').value.trim()||'不明';
+  const distance=parseFloat($('distance').value)||0;
+  const mm=S.hits.map(h=>pxToMm(h.x,h.y));
+  const mxs=mm.map(p=>p.x),mys=mm.map(p=>p.y);
+  const hSpan=parseFloat((Math.max(...mxs)-Math.min(...mxs)).toFixed(1));
+  const vSpan=parseFloat((Math.max(...mys)-Math.min(...mys)).toFixed(1));
+  const major=parseFloat(Math.sqrt(hSpan*hSpan+vSpan*vSpan).toFixed(1));
+  const minor=parseFloat(Math.min(hSpan,vSpan).toFixed(1));
+  const rec={id:Date.now(),firearm,ammo,distance,hitCount:S.hits.length,hSpan,vSpan,major,minor,date:new Date().toLocaleDateString('ja-JP')};
+  const recs=getRecs(); recs.push(rec); saveRecs(recs);
+  const msg=$('saveMsg'); msg.style.display='block'; setTimeout(()=>msg.style.display='none',2000);
+});
+
+// =========================================
+// DISPERSION TAB
+// =========================================
+function renderDispTab(){updateFilterSelects();renderRecordList();renderChart();}
+
+function updateFilterSelects(){
+  const recs=getRecs();
+  const firearms=[...new Set(recs.map(r=>r.firearm))];
+  const ammos=[...new Set(recs.map(r=>r.ammo))];
+  const fEl=$('filterFirearm'),aEl=$('filterAmmo');
+  const fv=fEl.value,av=aEl.value;
+  fEl.innerHTML='<option value="">すべて</option>'+firearms.map(f=>`<option value="${f}"${f===fv?' selected':''}>${f}</option>`).join('');
+  aEl.innerHTML='<option value="">すべて</option>'+ammos.map(a=>`<option value="${a}"${a===av?' selected':''}>${a}</option>`).join('');
+}
+
+function getFiltered(){
+  const fv=$('filterFirearm').value,av=$('filterAmmo').value;
+  return getRecs().filter(r=>(!fv||r.firearm===fv)&&(!av||r.ammo===av));
+}
+
+function renderRecordList(){
+  const filtered=getFiltered();
+  const container=$('recordList');
+  if(!filtered.length){container.innerHTML='<div class="no-records">記録がありません<br><small>弾痕解析タブで解析後<br>「記録として保存」してください</small></div>';return;}
+  const metric=$('chartMetric').value;
+  const groups={};
+  filtered.forEach(r=>{const k=r.firearm+'　／　'+r.ammo;(groups[k]=groups[k]||[]).push(r);});
+  container.innerHTML=Object.entries(groups).map(([k,items])=>{
+    const rows=[...items].sort((a,b)=>a.distance-b.distance).map(r=>`
+      <div class="record-item">
+        <div class="record-item-dist">${r.distance}m</div>
+        <div class="record-item-info">${r.date} / ${r.hitCount}発</div>
+        <div class="record-item-val">${r[metric]}mm</div>
+        <button class="record-del-btn" onclick="deleteRec(${r.id})">✕</button>
+      </div>`).join('');
+    return `<div class="record-group"><div class="record-group-header" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none'"><span>${k}</span><span class="rg-count">${items.length}件</span></div><div>${rows}</div></div>`;
+  }).join('');
+}
+
+function deleteRec(id){if(!confirm('この記録を削除しますか？'))return;saveRecs(getRecs().filter(r=>r.id!==id));renderDispTab();}
+$('btnClearAllRecords').addEventListener('click',()=>{if(!confirm('すべての記録を削除しますか？'))return;saveRecs([]);renderDispTab();});
+['filterFirearm','filterAmmo','chartMetric'].forEach(id=>$(id).addEventListener('change',()=>renderDispTab()));
+
+// =========================================
+// DISPERSION CHART
+// =========================================
+function renderChart(){
+  const container=$('chartContainer');
+  const canvas=$('dispChart');
+  canvas.width=container.clientWidth;
+  canvas.height=container.clientHeight;
+  const W=canvas.width, H=canvas.height;
+  const c2=canvas.getContext('2d');
+  c2.clearRect(0,0,W,H);
+
+  const filtered=getFiltered();
+  const metric=$('chartMetric').value;
+  const metricLabel={major:'長軸径（対角線）',hSpan:'水平方向広がり',vSpan:'垂直方向広がり',minor:'短軸径'}[metric];
+  $('chartTitle').textContent='散布率解析 — 距離 vs '+metricLabel;
+
+  if(filtered.length<2){
+    c2.fillStyle='rgba(90,99,128,0.6)'; c2.font='13px Noto Sans JP,sans-serif';
+    c2.textAlign='center'; c2.textBaseline='middle';
+    c2.fillText(filtered.length===0?'記録がありません（異なる距離で2件以上必要）':'異なる距離のデータが2件以上必要です',W/2,H/2);
+    $('moaSlope').innerHTML='—<span class="moa-unit"> mm/m</span>';
+    $('moa100').innerHTML='—<span class="moa-unit"> mm</span>';
+    $('moaR2').textContent='—';
+    return;
   }
 
-  .logo span { color: var(--accent2); }
+  // Group by firearm+ammo
+  const groups={};
+  filtered.forEach(r=>{const k=r.firearm+'／'+r.ammo;(groups[k]=groups[k]||[]).push(r);});
+  const COLORS=['#00e5ff','#ffe066','#7cfc6e','#ff3d3d','#c77dff','#ff9f43','#74b9ff'];
+  const PAD={l:58,r:24,t:24,b:52};
+  const cW=W-PAD.l-PAD.r, cH=H-PAD.t-PAD.b;
 
-  header p {
-    color: var(--text-dim);
-    font-size: 11px;
-    letter-spacing: 1px;
+  const allD=filtered.map(r=>r.distance), allV=filtered.map(r=>r[metric]);
+  let minD=Math.min(...allD), maxD=Math.max(...allD);
+  const maxV=Math.max(...allV)*1.18;
+  if(minD===maxD){minD=Math.max(0,minD-10);maxD=maxD+10;}
+  const dR=maxD-minD, vR=maxV;
+  const toX=d=>PAD.l+(d-minD)/dR*cW;
+  const toY=v=>PAD.t+cH*(1-v/vR);
+
+  // Grid background
+  c2.fillStyle='rgba(10,12,15,0.5)'; c2.fillRect(PAD.l,PAD.t,cW,cH);
+
+  // Y grid lines
+  c2.font='10px Share Tech Mono,monospace'; c2.fillStyle='rgba(90,99,128,0.8)'; c2.textAlign='right';
+  for(let i=0;i<=5;i++){
+    const v=maxV*i/5, y=toY(v);
+    c2.strokeStyle=i===0?'rgba(42,48,64,1)':'rgba(42,48,64,0.6)'; c2.lineWidth=i===0?1.5:0.8;
+    c2.beginPath(); c2.moveTo(PAD.l,y); c2.lineTo(W-PAD.r,y); c2.stroke();
+    c2.fillText(v.toFixed(0),PAD.l-5,y+3.5);
   }
 
-  .main-grid {
-    display: grid;
-    grid-template-columns: 300px 1fr 280px;
+  // X grid lines — use actual distance values as ticks
+  const distVals=[...new Set(allD)].sort((a,b)=>a-b);
+  // Add min and max if not present
+  const tickVals=([minD,...distVals,maxD]).filter((v,i,a)=>a.indexOf(v)===i).sort((a,b)=>a-b);
+  c2.textAlign='center';
+  tickVals.forEach(d=>{
+    const x=toX(d);
+    c2.strokeStyle='rgba(42,48,64,0.5)'; c2.lineWidth=0.8;
+    c2.beginPath(); c2.moveTo(x,PAD.t); c2.lineTo(x,PAD.t+cH); c2.stroke();
+    c2.fillStyle='rgba(90,99,128,0.8)'; c2.font='10px Share Tech Mono,monospace';
+    c2.fillText(d+'m',x,H-PAD.b+14);
+  });
+
+  // Axis border
+  c2.strokeStyle='rgba(42,48,64,1)'; c2.lineWidth=1.5;
+  c2.beginPath(); c2.moveTo(PAD.l,PAD.t); c2.lineTo(PAD.l,PAD.t+cH); c2.lineTo(PAD.l+cW,PAD.t+cH); c2.stroke();
+
+  // Axis labels
+  c2.fillStyle='rgba(90,99,128,0.9)'; c2.font='11px Noto Sans JP,sans-serif';
+  c2.textAlign='center'; c2.fillText('距離 (m)',W/2,H-3);
+  c2.save(); c2.translate(13,H/2); c2.rotate(-Math.PI/2); c2.fillText(metricLabel+' (mm)',0,0); c2.restore();
+
+  let totalSlope=0,totalIntercept=0,totalR2=0,nG=0;
+
+  Object.entries(groups).forEach(([key,items],gi)=>{
+    const color=COLORS[gi%COLORS.length];
+    const pts=[...items].sort((a,b)=>a.distance-b.distance).map(r=>({x:r.distance,y:r[metric]}));
+    const n=pts.length;
+
+    // Linear regression
+    if(n>=2){
+      const sx=pts.reduce((s,p)=>s+p.x,0), sy=pts.reduce((s,p)=>s+p.y,0);
+      const sxy=pts.reduce((s,p)=>s+p.x*p.y,0), sx2=pts.reduce((s,p)=>s+p.x*p.x,0);
+      const slope=(n*sxy-sx*sy)/(n*sx2-sx*sx);
+      const intercept=(sy-slope*sx)/n;
+      const yMean=sy/n;
+      const ssTot=pts.reduce((s,p)=>s+(p.y-yMean)**2,0);
+      const ssRes=pts.reduce((s,p)=>s+(p.y-(slope*p.x+intercept))**2,0);
+      const r2=ssTot>0?Math.max(0,1-ssRes/ssTot):1;
+      totalSlope+=slope; totalIntercept+=intercept; totalR2+=r2; nG++;
+
+      // Regression line with confidence shading
+      const yL=slope*minD+intercept, yR=slope*maxD+intercept;
+      c2.save();
+      // Shaded band (±10% of value as uncertainty)
+      const bandY1_L=toY(yL*1.1), bandY2_L=toY(yL*0.9);
+      const bandY1_R=toY(yR*1.1), bandY2_R=toY(yR*0.9);
+      c2.beginPath();
+      c2.moveTo(toX(minD),Math.min(bandY1_L,bandY2_L));
+      c2.lineTo(toX(maxD),Math.min(bandY1_R,bandY2_R));
+      c2.lineTo(toX(maxD),Math.max(bandY1_R,bandY2_R));
+      c2.lineTo(toX(minD),Math.max(bandY1_L,bandY2_L));
+      c2.closePath();
+      c2.fillStyle=color.replace('ff','28').replace('#','rgba(').split('').join('')+'28)'; // hack: just use global alpha
+      c2.globalAlpha=0.12; c2.fillStyle=color; c2.fill();
+      c2.globalAlpha=1;
+      // Trend line
+      c2.strokeStyle=color; c2.lineWidth=1.5; c2.globalAlpha=0.6;
+      c2.setLineDash([7,4]);
+      c2.beginPath(); c2.moveTo(toX(minD),toY(yL)); c2.lineTo(toX(maxD),toY(yR)); c2.stroke();
+      c2.setLineDash([]); c2.restore();
+
+      // Equation label
+      c2.fillStyle=color; c2.font='10px Share Tech Mono,monospace'; c2.globalAlpha=0.7; c2.textAlign='left';
+      c2.fillText('y='+slope.toFixed(2)+'x+'+(intercept>=0?'+':'')+intercept.toFixed(1), PAD.l+8, toY(yL)+14*(gi+1));
+      c2.globalAlpha=1;
+    }
+
+    // Data points
+    pts.forEach(p=>{
+      c2.save();
+      // Glow
+      c2.shadowColor=color; c2.shadowBlur=8;
+      c2.beginPath(); c2.arc(toX(p.x),toY(p.y),5.5,0,2*Math.PI);
+      c2.fillStyle=color; c2.fill();
+      c2.shadowBlur=0;
+      c2.strokeStyle='rgba(10,12,15,0.6)'; c2.lineWidth=1.2; c2.stroke();
+      // Value label
+      c2.fillStyle=color; c2.font='10px Share Tech Mono,monospace'; c2.textAlign='center'; c2.globalAlpha=0.9;
+      c2.fillText(p.y+'mm',toX(p.x),toY(p.y)-12);
+      c2.restore();
+    });
+
+    // Legend
+    const ly=PAD.t+10+gi*18;
+    c2.save();
+    c2.beginPath(); c2.arc(W-PAD.r-8,ly,4,0,2*Math.PI); c2.fillStyle=color; c2.fill();
+    c2.fillStyle='rgba(200,208,224,0.85)'; c2.font='10px Noto Sans JP,sans-serif'; c2.textAlign='right';
+    c2.fillText(key,W-PAD.r-16,ly+4);
+    c2.restore();
+  });
+
+  // Summary
+  if(nG>0){
+    const avgSlope=totalSlope/nG, avgInt=totalIntercept/nG, avgR2=totalR2/nG;
+    $('moaSlope').innerHTML=avgSlope.toFixed(2)+'<span class="moa-unit"> mm/m</span>';
+    $('moa100').innerHTML=Math.max(0,avgSlope*100+avgInt).toFixed(1)+'<span class="moa-unit"> mm</span>';
+    $('moaR2').textContent=avgR2.toFixed(3);
+  }
+}
+
+window.addEventListener('resize',()=>{if($('tabDispersion').classList.contains('active'))renderChart();});
+</script>
+</body>
+</html>    grid-template-columns: 300px 1fr 280px;
     gap: 0;
     height: calc(100vh - 49px);
   }
